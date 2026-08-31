@@ -1,0 +1,13 @@
+[Unit]
+Description=Switch WeCom to the Wine XDG Portal runner
+Requires=wecom-flatpak-poc-build.service
+After=wecom-flatpak-poc-build.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.local/share/wecom-wine-flatpak/scripts/switch-to-portal-runner.sh
+Restart=on-failure
+RestartSec=60s
+TimeoutStartSec=infinity

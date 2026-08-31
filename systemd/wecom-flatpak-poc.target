@@ -1,0 +1,7 @@
+[Unit]
+Description=WeCom Wine Flatpak unattended POC
+Wants=wecom-flatpak-poc-bootstrap.service wecom-flatpak-poc-app.service
+After=graphical-session.target
+
+[Install]
+WantedBy=default.target

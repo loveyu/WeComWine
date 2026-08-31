@@ -1,0 +1,21 @@
+[Unit]
+Description=Build Wine with XDG Portal dialogs for WeCom
+Wants=network-online.target
+After=network-online.target wecom-flatpak-poc-bootstrap.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=HTTPS_PROXY=socks5h://127.0.0.1:7891
+Environment=HTTP_PROXY=socks5h://127.0.0.1:7891
+Environment=ALL_PROXY=socks5h://127.0.0.1:7891
+Environment=NO_PROXY=127.0.0.1,localhost,mirrors.ustc.edu.cn
+Environment=https_proxy=socks5h://127.0.0.1:7891
+Environment=http_proxy=socks5h://127.0.0.1:7891
+Environment=all_proxy=socks5h://127.0.0.1:7891
+Environment=no_proxy=127.0.0.1,localhost,mirrors.ustc.edu.cn
+ExecStart=%h/.local/share/wecom-wine-flatpak/scripts/build-portal-wine.sh
+Restart=on-failure
+RestartSec=60s
+TimeoutStartSec=infinity

@@ -1,0 +1,14 @@
+[Unit]
+Description=Bootstrap WeCom Wine Flatpak POC
+Wants=network-online.target
+After=network-online.target
+PartOf=wecom-flatpak-poc.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.local/share/wecom-wine-flatpak/scripts/bootstrap.sh
+Restart=on-failure
+RestartSec=30s
+TimeoutStartSec=infinity

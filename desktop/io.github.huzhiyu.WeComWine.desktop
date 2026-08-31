@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=企业微信（Wine Flatpak）
+Comment=通过隔离的 Wine Flatpak 运行 Windows 企业微信
+Exec=systemctl --user start wecom-flatpak-poc.target
+Icon=wine
+Terminal=false
+Categories=Network;InstantMessaging;
+StartupNotify=true
+StartupWMClass=WXWork.exe
+X-GNOME-UsesNotifications=true

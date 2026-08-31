@@ -1,0 +1,13 @@
+[Unit]
+Description=Smoke-test Wine XDG Portal dialogs for WeCom
+Requires=wecom-flatpak-poc-switch.service
+After=wecom-flatpak-poc-switch.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.local/share/wecom-wine-flatpak/scripts/test-portal-runner.sh
+Restart=on-failure
+RestartSec=60s
+TimeoutStartSec=infinity

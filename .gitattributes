@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.patch text eol=lf
+*.sh text eol=lf
+*.service text eol=lf
+*.target text eol=lf
+*.png binary
+*.ico binary
+*.exe binary
+*.msi binary
