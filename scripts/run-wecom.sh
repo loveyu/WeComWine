@@ -29,7 +29,16 @@ write_status "${STATUS_FILE}" "starting" "${program_windows}"
 printf '%s starting %s\n' "$(date --iso-8601=seconds)" "${program_windows}"
 
 runner_pid=''
+shadow_suppressor_pid=''
 stop_requested=0
+
+stop_shadow_suppressor() {
+    if [[ -n "${shadow_suppressor_pid}" ]]; then
+        kill "${shadow_suppressor_pid}" 2>/dev/null || true
+        wait "${shadow_suppressor_pid}" 2>/dev/null || true
+        shadow_suppressor_pid=''
+    fi
+}
 
 stop_runner() {
     stop_requested=1
@@ -40,6 +49,12 @@ stop_runner() {
 }
 
 trap stop_runner TERM INT
+trap stop_shadow_suppressor EXIT
+
+if [[ "${WECOM_DISABLE_WINDOW_SHADOW:-1}" != "0" ]]; then
+    "${SCRIPT_DIR}/suppress-wecom-shadow.sh" &
+    shadow_suppressor_pid="$!"
+fi
 
 set +e
 flatpak_wine wine "${program_windows}" &
@@ -51,6 +66,7 @@ fi
 wait "${runner_pid}"
 wine_exit_code="$?"
 flatpak kill "${ACTIVE_FLATPAK_APP}" 2>/dev/null || true
+stop_shadow_suppressor
 set -e
 
 write_status "${STATUS_FILE}" "exited" \

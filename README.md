@@ -14,6 +14,7 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
   `xdg-desktop-portal-kde`；hook/template 调用自动回退 Wine 原生实现。
 - Fcitx5/XIM 预编辑、候选和中文上屏；候选框模式为 `overthespot`。
 - 只读复用宿主 Noto Sans CJK SC，不复制或安装大型字体包。
+- 仅对企业微信自绘、无焦点的透明阴影窗设为不可见，不修改 KDE 全局阴影。
 - 用户级 systemd 自动启动、失败重试、异常重启和官方 Wine runner 回滚。
 - Flatpak 默认不开放整个 home、host、摄像头、系统总线和容器 socket。
 
@@ -64,6 +65,10 @@ journalctl --user -u wecom-flatpak-poc-app.service -f
 
 企业微信内选择“退出”后会被 `Restart=always` 拉起；需要保持退出时，先停止
 target。
+
+默认启用企业微信窗口阴影抑制。临时回退时给运行服务设置
+`WECOM_DISABLE_WINDOW_SHADOW=0`；该功能依赖宿主已有的 `xprop` 和 `xwininfo`，
+缺失时只记录提示，不影响企业微信启动。
 
 ## 构建定制 runner
 
