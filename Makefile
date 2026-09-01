@@ -14,9 +14,8 @@ check:
 	@bash -n scripts/*.sh
 	@bash -n scripts/install-release.sh.in
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 16
-	@if find . -path './.git' -prune -o -type f \
-		\( -iname '*.exe' -o -iname '*.msi' -o -iname '*.dll' -o -iname '*.bundle' -o -iname '*.flatpak' \) \
-		-print -quit | grep -q .; then \
+	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
+		git ls-files | grep -Eiq '\.(exe|msi|dll|bundle|flatpak)$$'; then \
 		echo '错误：仓库中不能包含安装包或二进制发行制品' >&2; exit 1; \
 	fi
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git diff --check; fi

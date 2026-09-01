@@ -21,7 +21,7 @@ jobs:
           sudo apt-get install --yes flatpak curl patch make gcc git xz-utils
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build runner and Flatpak bundles
         run: ./scripts/ci-package-flatpaks.sh
