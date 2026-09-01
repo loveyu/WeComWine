@@ -25,8 +25,13 @@ if [[ ! -s "${PROGRAM_FILE}" ]]; then
 fi
 
 program_windows="$(<"${PROGRAM_FILE}")"
-write_status "${STATUS_FILE}" "starting" "${program_windows}"
-printf '%s starting %s\n' "$(date --iso-8601=seconds)" "${program_windows}"
+scale_factor="$(detect_system_scale_factor)"
+wine_dpi="$(scale_factor_to_wine_dpi "${scale_factor}")"
+write_status "${STATUS_FILE}" "starting" \
+    "${program_windows},scale=${scale_factor},dpi=${wine_dpi}"
+printf '%s starting %s scale=%s dpi=%s\n' \
+    "$(date --iso-8601=seconds)" "${program_windows}" \
+    "${scale_factor}" "${wine_dpi}"
 
 runner_pid=''
 shadow_suppressor_pid=''
@@ -57,11 +62,12 @@ if [[ "${WECOM_DISABLE_WINDOW_SHADOW:-1}" != "0" ]]; then
 fi
 
 set +e
-flatpak_wine wine "${program_windows}" &
+flatpak_wine_scaled "${wine_dpi}" wine "${program_windows}" &
 runner_pid="$!"
 sleep 2
 if kill -0 "${runner_pid}" 2>/dev/null; then
-    write_status "${STATUS_FILE}" "running" "${program_windows}"
+    write_status "${STATUS_FILE}" "running" \
+        "${program_windows},scale=${scale_factor},dpi=${wine_dpi}"
 fi
 wait "${runner_pid}"
 wine_exit_code="$?"

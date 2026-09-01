@@ -14,6 +14,7 @@ STATE_DIR="${WECOM_STATE_DIR:-${XDG_STATE_HOME}/wecom-flatpak-poc}"
 CACHE_DIR="${WECOM_CACHE_DIR:-${XDG_CACHE_HOME}/wecom-flatpak-poc}"
 DATA_DIR="${WECOM_DATA_DIR:-${XDG_DATA_HOME}/wecom-flatpak-poc}"
 LOG_DIR="${WECOM_LOG_DIR:-${STATE_DIR}/logs}"
+SCALE_FACTOR_OVERRIDE="${WECOM_SCALE_FACTOR:-}"
 
 FLATPAK_APP="org.winehq.Wine"
 FLATPAK_BRANCH="stable-25.08"
@@ -87,12 +88,83 @@ write_status() {
     } > "${status_file}"
 }
 
+load_desktop_environment() {
+    local variable value
+
+    for variable in DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS; do
+        [[ -n "${!variable:-}" ]] && continue
+        value="$(systemctl --user show-environment 2>/dev/null | \
+            sed -n "s/^${variable}=//p" | head -n 1 || true)"
+        [[ -n "${value}" ]] && export "${variable}=${value}"
+    done
+}
+
+normalize_scale_factor() {
+    local value="$1"
+
+    [[ "${value}" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+    LC_ALL=C awk -v value="${value}" '
+        BEGIN {
+            if (value < 0.5 || value > 4) exit 1
+            printf "%.4f", value
+        }
+    ' | sed -e 's/0*$//' -e 's/\.$//'
+}
+
+detect_system_scale_factor() {
+    local dpi=''
+    local scale=''
+
+    if [[ -n "${SCALE_FACTOR_OVERRIDE}" ]]; then
+        if ! scale="$(normalize_scale_factor "${SCALE_FACTOR_OVERRIDE}")"; then
+            printf '无效的企业微信缩放倍率：%s（允许范围 0.5-4）\n' \
+                "${SCALE_FACTOR_OVERRIDE}" >&2
+            return 64
+        fi
+        printf '%s\n' "${scale}"
+        return
+    fi
+
+    load_desktop_environment
+    if command -v xrdb >/dev/null 2>&1; then
+        dpi="$(xrdb -query 2>/dev/null | awk -F: '
+            tolower($1) ~ /^[[:space:]]*xft[.]dpi[[:space:]]*$/ {
+                gsub(/[[:space:]]/, "", $2); print $2; exit
+            }
+        ' || true)"
+    fi
+    if [[ "${dpi}" =~ ^[0-9]+([.][0-9]+)?$ ]] && \
+       scale="$(normalize_scale_factor "$(LC_ALL=C awk -v dpi="${dpi}" \
+           'BEGIN { printf "%.6f", dpi / 96 }')")"; then
+        printf '%s\n' "${scale}"
+        return
+    fi
+
+    if command -v kscreen-doctor >/dev/null 2>&1; then
+        scale="$(kscreen-doctor -o 2>/dev/null | \
+            sed $'s/\033\\[[0-9;]*[[:alpha:]]//g' | \
+            sed -n 's/^[[:space:]]*Scale:[[:space:]]*//p' | head -n 1 || true)"
+    fi
+    if [[ -n "${scale}" ]] && scale="$(normalize_scale_factor "${scale}")"; then
+        printf '%s\n' "${scale}"
+        return
+    fi
+
+    printf '1\n'
+}
+
+scale_factor_to_wine_dpi() {
+    LC_ALL=C awk -v scale="$1" 'BEGIN { printf "%d\n", int(scale * 96 + 0.5) }'
+}
+
 flatpak_wine() {
     local command_name="$1"
     local wine_debug="${WINEDEBUG_VALUE:--all}"
     local -a prefix_mount=()
     local -a test_environment=()
     shift
+
+    load_desktop_environment
 
     if [[ "${WINEPREFIX_HOST}" == "${SHARED_WINEPREFIX_HOST}" ||
           "${WINEPREFIX_HOST}" == "${PORTAL_TEST_WINEPREFIX_HOST}" ]]; then
@@ -119,4 +191,18 @@ flatpak_wine() {
         "${test_environment[@]}" \
         --command="${command_name}" \
         "${ACTIVE_FLATPAK_APP}" "$@"
+}
+
+flatpak_wine_scaled() {
+    local wine_dpi="$1"
+    shift
+
+    # Keep the registry update and WeCom in one Flatpak/wineserver lifetime.
+    # Separate Flatpak invocations can race while saving the shared prefix.
+    flatpak_wine sh -c '
+        wine reg.exe add "HKCU\Control Panel\Desktop" \
+            /v LogPixels /t REG_DWORD /d "$1" /f >/dev/null
+        shift
+        exec "$@"
+    ' sh "${wine_dpi}" "$@"
 }

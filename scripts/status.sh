@@ -4,6 +4,7 @@ set -u
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "${SCRIPT_DIR}/common.sh"
+load_desktop_environment
 
 printf '== systemd ==\n'
 systemctl --user --no-pager --full status \
@@ -18,6 +19,11 @@ printf 'active_app=%s\n' "${ACTIVE_FLATPAK_APP}"
 printf 'active_branch=%s\n' "${ACTIVE_FLATPAK_BRANCH}"
 printf 'wineprefix_host=%s\n' "${WINEPREFIX_HOST}"
 printf 'wineprefix_sandbox=%s\n' "${WINEPREFIX_SANDBOX}"
+
+scale_factor="$(detect_system_scale_factor)"
+printf '\n== scale ==\n'
+printf 'system_scale=%s\n' "${scale_factor}"
+printf 'wine_dpi=%s\n' "$(scale_factor_to_wine_dpi "${scale_factor}")"
 
 printf '\n== state ==\n'
 for status_file in "${STATE_DIR}"/*.status; do
