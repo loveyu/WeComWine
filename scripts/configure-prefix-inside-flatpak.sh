@@ -2,6 +2,39 @@
 
 set -eu
 
+# Wine creates the profile shell folders as links to the host XDG folders.
+# A deliberately narrow Flatpak sandbox cannot follow most of those links.
+# shell32 then fails to construct the Desktop shell folder, and Wine's
+# IFileDialog constructor used to dereference the resulting NULL pointer.
+# Keep inaccessible folders private to the prefix; files explicitly selected
+# through xdg-desktop-portal remain available via the document portal.
+isolate_inaccessible_shell_folders()
+{
+    profile_root="${WINEPREFIX}/drive_c/users"
+    for profile_dir in "${profile_root}"/*; do
+        [ -d "${profile_dir}" ] || continue
+        [ "$(basename "${profile_dir}")" != 'Public' ] || continue
+
+        for shell_folder_name in Desktop Documents Downloads Music Pictures Videos; do
+            shell_folder="${profile_dir}/${shell_folder_name}"
+            if [ -L "${shell_folder}" ] && [ ! -e "${shell_folder}" ]; then
+                link_target="$(readlink "${shell_folder}" || true)"
+                unlink "${shell_folder}"
+                mkdir -p "${shell_folder}"
+                printf 'isolated inaccessible shell folder: %s (was -> %s)\n' \
+                    "${shell_folder}" "${link_target}"
+            fi
+        done
+    done
+}
+
+# Existing prefixes are repaired before wineboot touches shell folders.  A
+# fresh prefix needs one wineboot pass to create its profile, then a second
+# pass after inaccessible links have been isolated.
+isolate_inaccessible_shell_folders
+wineboot --update
+wineserver --wait
+isolate_inaccessible_shell_folders
 wineboot --update
 wineserver --wait
 

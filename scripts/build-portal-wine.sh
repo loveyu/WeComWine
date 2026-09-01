@@ -152,6 +152,7 @@ flatpak build \
             INSTALL_PROGRAM_FLAGS=-s
         # The 32-bit ntdll resolves wineserver relative to bindir.  Both sides
         # of a traditional WoW64 build must talk to the 64-bit wineserver.
+        install -d /app/bin32
         ln -sfn ../bin/wineserver /app/bin32/wineserver
     '
 
@@ -173,6 +174,10 @@ flatpak build \
             -o /app/share/wecom-portal-tests/ime-smoke.exe \
             /run/project/tests/ime-smoke.c \
             -limm32
+        i686-w64-mingw32-gcc -municode -O2 -s \
+            -o /app/share/wecom-portal-tests/clipboard-smoke.exe \
+            /run/project/tests/clipboard-smoke.c \
+            -lole32 -lgdi32
     '
 
 write_status "${STATUS_FILE}" "finish-flatpak" "${PORTAL_FLATPAK_APP}"

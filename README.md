@@ -12,6 +12,10 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
 - Wine 11.0 传统 WoW64，支持企业微信 32 位主程序和 64 位辅助组件。
 - Wine MR10060 Portal 补丁：兼容的打开、保存和目录对话框交给
   `xdg-desktop-portal-kde`；hook/template 调用自动回退 Wine 原生实现。
+- 受限沙箱内不可访问的 Wine 用户目录链接会转换为前缀内部目录，避免
+  `IFileDialog` 初始化崩溃；宿主文件仍按文件选择结果通过文档 Portal 授权。
+- 回移 Wine 11.3 的 X11 剪贴板格式注册修复，避免企业微信私有消息与图片
+  剪贴板格式编号错配，恢复 `CF_DIB`/`CF_BITMAP` 图片粘贴。
 - Fcitx5/XIM 预编辑、候选和中文上屏；候选框模式为 `overthespot`。
 - 只读复用宿主 Noto Sans CJK SC，不复制或安装大型字体包。
 - 每次启动读取 KDE/X11 的 `Xft.dpi` 并设置 Wine `LogPixels`，跟随系统缩放。

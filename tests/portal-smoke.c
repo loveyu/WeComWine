@@ -190,6 +190,30 @@ done:
     return ret;
 }
 
+static int test_ifile_dialog_constructor(void)
+{
+    IFileDialog *dialog = NULL;
+    HRESULT hr;
+
+    hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    if (FAILED(hr))
+    {
+        fwprintf(stderr, L"CoInitializeEx failed: 0x%08lx\n", (unsigned long)hr);
+        return 4;
+    }
+    hr = CoCreateInstance(&CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER,
+                          &IID_IFileDialog, (void **)&dialog);
+    if (dialog) IFileDialog_Release(dialog);
+    CoUninitialize();
+    if (FAILED(hr))
+    {
+        fwprintf(stderr, L"CoCreateInstance failed: 0x%08lx\n", (unsigned long)hr);
+        return 1;
+    }
+    wprintf(L"constructed\n");
+    return 0;
+}
+
 int wmain(int argc, WCHAR **argv)
 {
     HANDLE watchdog;
@@ -198,7 +222,7 @@ int wmain(int argc, WCHAR **argv)
     if (watchdog) CloseHandle(watchdog);
     if (argc != 2)
     {
-        fwprintf(stderr, L"usage: portal-smoke.exe open|opena|save|savea|folder|ifileopen|ifilesave|hook\n");
+        fwprintf(stderr, L"usage: portal-smoke.exe open|opena|save|savea|folder|ifilecreate|ifileopen|ifilesave|hook\n");
         return 64;
     }
     if (!lstrcmpiW(argv[1], L"open")) return test_legacy_open();
@@ -206,6 +230,7 @@ int wmain(int argc, WCHAR **argv)
     if (!lstrcmpiW(argv[1], L"save")) return test_legacy_save();
     if (!lstrcmpiW(argv[1], L"savea")) return test_legacy_save_a();
     if (!lstrcmpiW(argv[1], L"folder")) return test_browse_folder();
+    if (!lstrcmpiW(argv[1], L"ifilecreate")) return test_ifile_dialog_constructor();
     if (!lstrcmpiW(argv[1], L"ifileopen")) return test_ifile_dialog(FALSE);
     if (!lstrcmpiW(argv[1], L"ifilesave")) return test_ifile_dialog(TRUE);
     if (!lstrcmpiW(argv[1], L"hook")) return test_hook_fallback();

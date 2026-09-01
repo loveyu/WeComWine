@@ -1,0 +1,35 @@
+From 0ed7e47d01975be9102b2a2c46e7e52ba889ddf7 Mon Sep 17 00:00:00 2001
+From: Piotr Pawlowski <mrp1992@protonmail.com>
+Date: Sun, 8 Feb 2026 12:45:37 +0100
+Subject: [PATCH 8/8] winex11: Register clipboard format with
+ NtUserRegisterWindowMessage
+
+Backport Wine upstream commit 0ed7e47d01975be9102b2a2c46e7e52ba889ddf7.
+This prevents registered clipboard format IDs from being confused with global
+atoms, which breaks image paste in applications that register many private
+messages and clipboard formats.
+
+Wine-Bug: https://bugs.winehq.org/show_bug.cgi?id=59257
+---
+ dlls/winex11.drv/clipboard.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/winex11.drv/clipboard.c b/dlls/winex11.drv/clipboard.c
+index da084eb02fd..f10c539e4cb 100644
+--- a/dlls/winex11.drv/clipboard.c
++++ b/dlls/winex11.drv/clipboard.c
+@@ -288,9 +288,9 @@ static struct clipboard_format *find_x11_format( Atom atom )
+ 
+ static ATOM register_clipboard_format( const WCHAR *name )
+ {
+-    ATOM atom;
+-    if (NtAddAtom( name, lstrlenW( name ) * sizeof(WCHAR), &atom )) return 0;
+-    return atom;
++    UNICODE_STRING name_str;
++    RtlInitUnicodeString( &name_str, name );
++    return NtUserRegisterWindowMessage( &name_str );
+ }
+ 
+ 
+-- 
+2.51.0

@@ -16,6 +16,7 @@
 - [x] 移除企业微信自绘透明阴影窗，不修改 KDE 或其他应用的全局阴影。
 - [x] 企业微信 Wine DPI 自动跟随 KDE/X11 系统缩放，并支持显式倍率覆盖。
 - [x] 已登录企业微信主窗口强制启用 KWin 系统边框，恢复持续拖拽移动。
+- [x] 回移 Wine X11 剪贴板格式注册修复，并增加 32 位图片/OLE 剪贴板探针。
 
 ## 生成正式独立包前
 
@@ -34,6 +35,8 @@
   `IFileSaveDialog`、`SHBrowseForFolderW`、过滤器、多选和 hook 回退；D-Bus
   计数 `OpenFile=4`、`SaveFile=3`。
 - 输入法：Fcitx5 拼音 `nihao` 上屏结果 UTF-16 为 `4F60 597D`（“你好”）。
+- 剪贴板：32 位探针验证 `CF_BITMAP`、`CF_DIB`、`CF_DIBV5` 和 OLE
+  `IDataObject`，覆盖企业微信图片粘贴所需格式。
 - 生命周期：停止后没有残留项目 Flatpak/Wine 实例，冷启动后二维码窗口恢复。
 
 ## 明确不纳入范围
