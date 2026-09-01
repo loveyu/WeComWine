@@ -31,9 +31,11 @@ window_geometry() {
         /Absolute upper-left Y:/ { y = $4 }
         /^  Width:/ { width = $2 }
         /^  Height:/ { height = $2 }
+        /^  Depth:/ { depth = $2 }
         END {
-            if (x != "" && y != "" && width != "" && height != "") {
-                print x, y, width, height
+            if (x != "" && y != "" && width != "" && height != "" &&
+                depth != "") {
+                print x, y, width, height, depth
             } else {
                 exit 1
             }
@@ -55,9 +57,10 @@ is_wecom_shadow() {
     local window_id="$1"
     local properties=''
     local transient_id=''
-    local outer_x outer_y outer_width outer_height
-    local inner_x inner_y inner_width inner_height
-    local margin_x margin_y width_delta height_delta
+    local outer_x outer_y outer_width outer_height outer_depth
+    local inner_x inner_y inner_width inner_height inner_depth
+    local margin_left margin_right margin_top margin_bottom
+    local margin
 
     properties="$(window_properties "${window_id}")" || return 1
 
@@ -71,6 +74,8 @@ is_wecom_shadow() {
         <<< "${properties}" || return 1
     grep -Eq '^_NET_WM_STATE.*_NET_WM_STATE_SKIP_PAGER' \
         <<< "${properties}" || return 1
+    grep -Eq '^_NET_WM_STATE.*_KDE_NET_WM_STATE_SKIP_SWITCHER' \
+        <<< "${properties}" || return 1
     grep -Fq 'Client accepts input or input focus: False' \
         <<< "${properties}" || return 1
 
@@ -82,23 +87,28 @@ is_wecom_shadow() {
         grep -Eqi '^WM_CLASS\(STRING\) = "wxwork\.exe", "wxwork\.exe"$' || \
         return 1
 
-    read -r outer_x outer_y outer_width outer_height \
+    read -r outer_x outer_y outer_width outer_height outer_depth \
         < <(window_geometry "${window_id}") || return 1
-    read -r inner_x inner_y inner_width inner_height \
+    read -r inner_x inner_y inner_width inner_height inner_depth \
         < <(window_geometry "${transient_id}") || return 1
 
-    margin_x=$(( inner_x - outer_x ))
-    margin_y=$(( inner_y - outer_y ))
-    width_delta=$(( outer_width - inner_width - (2 * margin_x) ))
-    height_delta=$(( outer_height - inner_height - (2 * margin_y) ))
+    (( outer_depth == 32 && inner_depth == 24 )) || return 1
+
+    margin_left=$(( inner_x - outer_x ))
+    margin_right=$(( outer_x + outer_width - inner_x - inner_width ))
+    margin_top=$(( inner_y - outer_y ))
+    margin_bottom=$(( outer_y + outer_height - inner_y - inner_height ))
 
     # WeCom renders its shadow as an unfocusable, centered ARGB dialog around
-    # the real window. Allow a small rounding tolerance for fractional scaling.
-    (( margin_x >= 4 && margin_x <= 128 )) || return 1
-    (( margin_y >= 4 && margin_y <= 128 )) || return 1
-    (( $(absolute_value "$(( margin_x - margin_y ))") <= 4 )) || return 1
-    (( $(absolute_value "${width_delta}") <= 2 )) || return 1
-    (( $(absolute_value "${height_delta}") <= 2 )) || return 1
+    # the real window. The login shadow is symmetric, while the signed-in main
+    # window uses a larger top margin than bottom margin. Validate each edge
+    # instead of requiring the two window centers to be identical.
+    for margin in \
+        "${margin_left}" "${margin_right}" "${margin_top}" "${margin_bottom}"; do
+        (( margin >= 4 && margin <= 128 )) || return 1
+    done
+    (( $(absolute_value "$(( margin_left - margin_right ))") <= 4 )) || return 1
+    (( $(absolute_value "$(( margin_top - margin_bottom ))") <= 64 )) || return 1
 }
 
 suppress_window() {

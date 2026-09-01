@@ -16,3 +16,7 @@ install -m 644 \
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "${APPLICATION_DIR}" >/dev/null 2>&1 || true
 fi
+
+if [[ "${WECOM_SKIP_KWIN_RULE:-0}" != "1" ]]; then
+    "${PROJECT_DIR}/scripts/install-kwin-rule.sh" install
+fi

@@ -15,7 +15,10 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
 - Fcitx5/XIM 预编辑、候选和中文上屏；候选框模式为 `overthespot`。
 - 只读复用宿主 Noto Sans CJK SC，不复制或安装大型字体包。
 - 每次启动读取 KDE/X11 的 `Xft.dpi` 并设置 Wine `LogPixels`，跟随系统缩放。
-- 仅对企业微信自绘、无焦点的透明阴影窗设为不可见，不修改 KDE 全局阴影。
+- 仅对企业微信自绘、无焦点的透明阴影窗设为不可见，覆盖登录窗和已登录
+  主窗口的对称/非对称阴影，不修改 KDE 全局阴影。
+- 通过只匹配 `wxwork.exe` 且标题为“企业微信”的 KWin 强制规则启用系统边框，
+  避免企业微信恢复无边框后只能拖动一次。
 - 用户级 systemd 自动启动、失败重试、异常重启和官方 Wine runner 回滚。
 - Flatpak 默认不开放整个 home、host、摄像头、系统总线和容器 socket。
 
@@ -75,6 +78,16 @@ target。
 到 100%。可用 `WECOM_SCALE_FACTOR=1.5` 显式覆盖；允许范围为 0.5～4。
 Wine DPI 写入和企业微信启动位于同一个 Flatpak/wineserver 生命周期，避免共享
 前缀的注册表写入竞争。
+
+KWin 规则只影响标题精确为“企业微信”的窗口，空标题阴影窗不会命中。卸载或
+临时回退系统边框时执行：
+
+```bash
+~/.local/share/wecom-wine-flatpak/scripts/install-kwin-rule.sh remove
+```
+
+首次安装前的 `kwinrulesrc` 会备份到项目状态目录；安装时可用
+`WECOM_SKIP_KWIN_RULE=1 make install-user` 跳过该集成。
 
 ## 构建定制 runner
 

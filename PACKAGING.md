@@ -22,11 +22,15 @@ make dist SOURCE_DATE_EPOCH=0
 
 - `make check` 校验 shell 语法、补丁数量，并阻止 EXE/MSI/Flatpak 二进制进入仓库。
 - `make install-user` 安装到 `~/.local/share/wecom-wine-flatpak`，部署用户级
-  systemd 和桌面入口，但不会自动启动。
+  systemd、桌面入口和企业微信专用 KWin 系统边框规则，但不会自动启动。
 - `make dist` 生成排序、固定时间戳和固定 owner 的源码归档及 SHA-256 文件。
 
 当前 Flatpak runner 的权威构建实现仍是 `scripts/build-portal-wine.sh`。YAML
 manifest 是依赖和补丁来源记录，尚不能替代传统 WoW64 配对构建。
+
+用户级集成包在 KDE 环境还依赖 `kwriteconfig6`、`kreadconfig6`、`qdbus6`、
+`xprop` 和 `xwininfo`。规则安装会保留既有 KWin 规则列表，仅增加固定 ID
+`wecom-wine-system-frame`；卸载流程必须调用 `scripts/install-kwin-rule.sh remove`。
 
 ## 正式发布前阻塞项
 
