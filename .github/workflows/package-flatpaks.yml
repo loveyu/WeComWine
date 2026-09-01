@@ -27,9 +27,10 @@ jobs:
         run: ./scripts/ci-package-flatpaks.sh
 
       - name: Upload Flatpak bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wecomwine-public-${{ github.run_id }}
           path: artifacts/flatpak/*
           if-no-files-found: error
           retention-days: 14
+          compression-level: 0
