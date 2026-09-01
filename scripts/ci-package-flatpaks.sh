@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 
 export WECOM_FLATPAK_REMOTE="${WECOM_FLATPAK_REMOTE:-flathub-wecom}"
-export WECOM_FLATPAK_REMOTE_URL="${WECOM_FLATPAK_REMOTE_URL:-https://dl.flathub.org/repo/}"
+export WECOM_FLATPAK_REMOTE_URL="${WECOM_FLATPAK_REMOTE_URL:-https://dl.flathub.org/repo/flathub.flatpakrepo}"
 export WECOM_PORTAL_FLATPAK_REPO="${WECOM_PORTAL_FLATPAK_REPO:-${PROJECT_DIR}/artifacts/repo}"
 export WECOM_MAIN_FLATPAK_REPO="${WECOM_PORTAL_FLATPAK_REPO}"
 export WECOM_FLATPAK_OUTPUT_DIR="${WECOM_FLATPAK_OUTPUT_DIR:-${PROJECT_DIR}/artifacts/flatpak}"

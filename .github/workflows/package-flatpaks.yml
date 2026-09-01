@@ -10,29 +10,25 @@ on:
         default: false
 
 jobs:
-  package:
-    runs-on: [self-hosted, linux, x64, wecom-flatpak]
+  package-public:
+    if: ${{ !inputs.include_richedit }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 360
     permissions:
       contents: read
     env:
       BUILD_JOBS: "4"
-      WECOM_REQUIRE_RICHEDIT_PACKAGE: ${{ inputs.include_richedit && '1' || '0' }}
-      WECOM_RICHEDIT_DLL: ${{ inputs.include_richedit && vars.WECOM_RICHEDIT_DLL || '' }}
+      WECOM_REQUIRE_RICHEDIT_PACKAGE: "0"
+      WECOM_RICHEDIT_DLL: ""
 
     steps:
+      - name: Install host build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes flatpak curl patch make gcc git xz-utils
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Reject RichEdit packaging in a public repository
-        if: ${{ inputs.include_richedit && !github.event.repository.private }}
-        run: |
-          echo "RichEdit extension packaging is restricted to a private repository." >&2
-          exit 1
-
-      - name: Verify private RichEdit input
-        if: ${{ inputs.include_richedit }}
-        run: test -f "${WECOM_RICHEDIT_DLL}"
 
       - name: Build runner and Flatpak bundles
         run: ./scripts/ci-package-flatpaks.sh
@@ -40,7 +36,46 @@ jobs:
       - name: Upload Flatpak bundles
         uses: actions/upload-artifact@v4
         with:
-          name: wecomwine-flatpaks-${{ github.run_id }}
+          name: wecomwine-public-${{ github.run_id }}
+          path: |
+            artifacts/flatpak/*.flatpak
+            artifacts/flatpak/SHA256SUMS
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  package-private:
+    if: ${{ inputs.include_richedit }}
+    runs-on: [self-hosted, linux, x64, wecom-flatpak]
+    timeout-minutes: 360
+    permissions:
+      contents: read
+    env:
+      BUILD_JOBS: "4"
+      WECOM_REQUIRE_RICHEDIT_PACKAGE: "1"
+      WECOM_RICHEDIT_DLL: ${{ vars.WECOM_RICHEDIT_DLL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject private component packaging in a public repository
+        if: ${{ !github.event.repository.private }}
+        run: |
+          echo "RichEdit extension packaging is restricted to a private repository." >&2
+          exit 1
+
+      - name: Verify private RichEdit input
+        run: test -f "${WECOM_RICHEDIT_DLL}"
+
+      - name: Build runner and Flatpak bundles
+        run: ./scripts/ci-package-flatpaks.sh
+
+      - name: Upload private Flatpak bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: wecomwine-private-${{ github.run_id }}
           path: |
             artifacts/flatpak/*.flatpak
             artifacts/flatpak/SHA256SUMS

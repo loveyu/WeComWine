@@ -42,9 +42,10 @@ make flatpak-bundles
   `org.winehq.Wine` 应用；企业微信前缀落在新应用的用户级 Flatpak 数据目录。
 
 Flatpak runner 的权威构建实现是 `scripts/build-portal-wine.sh`；
-`scripts/ci-package-flatpaks.sh` 在自托管 CI 节点完成传统 WoW64 配对构建并调用
+`scripts/ci-package-flatpaks.sh` 在 CI 节点完成传统 WoW64 配对构建并调用
 `scripts/package-flatpaks.sh` 生成多个单文件 Flatpak 和 `SHA256SUMS`。GitHub
-Actions 入口为 `.github/workflows/package-flatpaks.yml`，要求节点标签
+Actions 入口为 `.github/workflows/package-flatpaks.yml`。公开主包在 GitHub 托管的
+`ubuntu-24.04` Runner 构建；私有 RichEdit 构建才要求节点标签
 `self-hosted, linux, x64, wecom-flatpak`。私有 RichEdit 文件路径通过仓库变量
 `WECOM_RICHEDIT_DLL` 提供，不能存入 GitHub Secret 文本或源码检出目录。
 

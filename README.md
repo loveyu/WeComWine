@@ -79,8 +79,9 @@ scripts/install-flatpak-bundles.sh \
 systemctl --user start wecom-flatpak-poc-bootstrap.service
 ```
 
-私有 CI 入口为 `.github/workflows/package-flatpaks.yml`。主包可独立构建；只有在
-自托管节点提供 `WECOM_RICHEDIT_DLL` 文件路径并通过固定摘要校验后，才会生成
+CI 入口为 `.github/workflows/package-flatpaks.yml`。公开主包由 GitHub 托管的
+Ubuntu Runner 独立构建；只有私有仓库的自托管节点提供
+`WECOM_RICHEDIT_DLL` 文件路径并通过固定摘要校验后，才会生成
 RichEdit 扩展。两个 Flatpak、`SHA256SUMS` 和企业微信用户数据彼此独立。使用
 自建 runner 引导安装时只补充 Wine Gecko/Mono 扩展，不再安装完整的
 `org.winehq.Wine` 应用；全新安装的 Wine 前缀位于自建应用自己的 Flatpak 数据
