@@ -80,12 +80,29 @@ systemctl --user start wecom-flatpak-poc-bootstrap.service
 ```
 
 CI 入口为 `.github/workflows/package-flatpaks.yml`。公开主包由 GitHub 托管的
-Ubuntu Runner 独立构建；只有私有仓库的自托管节点提供
-`WECOM_RICHEDIT_DLL` 文件路径并通过固定摘要校验后，才会生成
-RichEdit 扩展。两个 Flatpak、`SHA256SUMS` 和企业微信用户数据彼此独立。使用
+Ubuntu Runner 独立构建；线上工作流不接触微软 DLL，RichEdit 扩展只由 Release
+安装脚本根据用户提供的本地文件生成。Flatpak、摘要和企业微信用户数据彼此独立。使用
 自建 runner 引导安装时只补充 Wine Gecko/Mono 扩展，不再安装完整的
 `org.winehq.Wine` 应用；全新安装的 Wine 前缀位于自建应用自己的 Flatpak 数据
 目录，已有共享前缀则继续原地使用。
+
+正式 Release 同时提供 `install-wecomwine-VERSION.sh`。用户下载这个脚本后，
+它会继续下载并校验 CI 生成的 Wine Runner 与源码集成层；如需原生 RichEdit，
+必须从用户合法持有的介质取得 DLL，再由脚本在用户机器上打包扩展：
+
+```bash
+curl -fLO \
+  https://github.com/loveyu/WeComWine/releases/download/v0.1.0/install-wecomwine-0.1.0.sh
+
+# 使用 Wine 内置 RichEdit 安装
+bash install-wecomwine-0.1.0.sh
+
+# 或在本机生成、安装用户自备 RichEdit 扩展
+bash install-wecomwine-0.1.0.sh --richedit-dll /path/to/riched20.dll
+```
+
+安装脚本不会下载、缓存到源码树或公开分发微软 DLL。默认还会通过 bootstrap
+独立下载、校验、安装并启动企业微信；传入 `--skip-wecom` 可只安装 Runner。
 
 安装根目录默认为 `~/.local/share/wecom-wine-flatpak`。运行数据继续使用已验证的
 兼容命名空间：

@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+RELEASE_VERSION="${WECOMWINE_VERSION:-@WECOMWINE_VERSION@}"
+REPOSITORY="${WECOMWINE_REPOSITORY:-loveyu/WeComWine}"
+RICHEDIT_DLL=''
+INSTALL_WECOM=1
+DOWNLOAD_DIR="${WECOMWINE_DOWNLOAD_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/wecomwine/releases/${RELEASE_VERSION}}"
+
+usage() {
+    cat <<'USAGE'
+用法：bash install-wecomwine-VERSION.sh [选项]
+
+选项：
+  --richedit-dll PATH  使用用户合法持有的 riched20.dll 在本机生成可选扩展
+  --skip-wecom         只安装 Wine Runner 和集成层，不下载安装企业微信
+  --download-dir DIR   指定经过校验的 Release 制品缓存目录
+  -h, --help           显示帮助
+
+脚本不会下载或分发 Microsoft RichEdit DLL。未指定 --richedit-dll 时使用
+Runner 内置的 Wine RichEdit，外部图片粘贴能力不作保证。
+USAGE
+}
+
+while (($#)); do
+    case "$1" in
+        --richedit-dll)
+            [[ $# -ge 2 ]] || { printf '%s 缺少参数。\n' "$1" >&2; exit 64; }
+            RICHEDIT_DLL="$2"
+            shift 2
+            ;;
+        --skip-wecom)
+            INSTALL_WECOM=0
+            shift
+            ;;
+        --download-dir)
+            [[ $# -ge 2 ]] || { printf '%s 缺少参数。\n' "$1" >&2; exit 64; }
+            DOWNLOAD_DIR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf '未知参数：%s\n' "$1" >&2
+            usage >&2
+            exit 64
+            ;;
+    esac
+done
+
+for command_name in awk curl flatpak install mktemp sha256sum systemctl tar; do
+    if ! command -v "${command_name}" >/dev/null 2>&1; then
+        printf '缺少安装命令：%s\n' "${command_name}" >&2
+        exit 69
+    fi
+done
+if [[ -n "${RICHEDIT_DLL}" && ! -f "${RICHEDIT_DLL}" ]]; then
+    printf 'RichEdit DLL 不存在：%s\n' "${RICHEDIT_DLL}" >&2
+    exit 66
+fi
+
+release_base="https://github.com/${REPOSITORY}/releases/download/v${RELEASE_VERSION}"
+main_name="io.github.loveyu.WeComWine-${RELEASE_VERSION}-x86_64.flatpak"
+source_name="wecom-wine-flatpak-${RELEASE_VERSION}.tar.gz"
+manifest_name="RELEASE_SHA256SUMS"
+
+install -d "${DOWNLOAD_DIR}"
+DOWNLOAD_DIR="$(cd -- "${DOWNLOAD_DIR}" && pwd -P)"
+
+download_asset() {
+    local name="$1"
+    local target="${DOWNLOAD_DIR}/${name}"
+
+    if [[ ! -f "${target}" ]]; then
+        curl \
+            --fail \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            --retry 8 \
+            --retry-all-errors \
+            --continue-at - \
+            --output "${target}" \
+            "${release_base}/${name}"
+    fi
+}
+
+verify_asset() {
+    local name="$1"
+    local expected actual
+
+    expected="$(awk -v target="${name}" '$2 == target { print $1; exit }' \
+        "${DOWNLOAD_DIR}/${manifest_name}")"
+    if [[ -z "${expected}" ]]; then
+        printf 'Release 摘要清单缺少：%s\n' "${name}" >&2
+        exit 65
+    fi
+    actual="$(sha256sum "${DOWNLOAD_DIR}/${name}" | awk '{print $1}')"
+    if [[ "${actual}" != "${expected}" ]]; then
+        printf 'Release 制品摘要不匹配：%s\nexpected=%s\nactual=%s\n' \
+            "${name}" "${expected}" "${actual}" >&2
+        exit 65
+    fi
+    printf '%s: OK\n' "${name}"
+}
+
+download_asset "${manifest_name}"
+download_asset "${main_name}"
+download_asset "${source_name}"
+verify_asset "${main_name}"
+verify_asset "${source_name}"
+
+extract_dir="$(mktemp -d "${TMPDIR:-/tmp}/wecomwine-install.XXXXXX")"
+cleanup() {
+    rm -rf -- "${extract_dir}"
+}
+trap cleanup EXIT
+
+tar -xzf "${DOWNLOAD_DIR}/${source_name}" -C "${extract_dir}"
+project_dir="${extract_dir}/wecom-wine-flatpak-${RELEASE_VERSION}"
+if [[ ! -x "${project_dir}/scripts/install-flatpak-bundles.sh" ]]; then
+    printf '源码制品结构不正确：%s\n' "${project_dir}" >&2
+    exit 65
+fi
+
+flatpak remote-add --user --if-not-exists \
+    flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+richedit_bundle=''
+if [[ -n "${RICHEDIT_DLL}" ]]; then
+    richedit_bundle="${DOWNLOAD_DIR}/io.github.loveyu.WeComWine.RichEdit-${RELEASE_VERSION}-x86_64.flatpak"
+    "${project_dir}/scripts/package-richedit-extension.sh" \
+        "${RICHEDIT_DLL}" "${richedit_bundle}"
+fi
+
+if [[ -n "${richedit_bundle}" ]]; then
+    "${project_dir}/scripts/install-flatpak-bundles.sh" \
+        "${DOWNLOAD_DIR}/${main_name}" "${richedit_bundle}"
+else
+    "${project_dir}/scripts/install-flatpak-bundles.sh" \
+        "${DOWNLOAD_DIR}/${main_name}"
+fi
+
+if (( INSTALL_WECOM == 1 )); then
+    systemctl --user start wecom-flatpak-poc-bootstrap.service
+    systemctl --user enable --now wecom-flatpak-poc.target
+    printf '企业微信已独立下载、校验、安装并启动。\n'
+else
+    printf '已跳过企业微信安装；稍后可执行：\n'
+    printf '  systemctl --user start wecom-flatpak-poc-bootstrap.service\n'
+fi
+
+printf 'WeComWine %s 安装完成。\n' "${RELEASE_VERSION}"

@@ -38,16 +38,20 @@ make flatpak-bundles
   `WECOM_RICHEDIT_DLL=/secure/path/riched20.dll` 时同时生成私有 RichEdit 扩展。
 - `scripts/install-flatpak-bundles.sh MAIN.flatpak [RICHEDIT.flatpak]` 以用户级
   Flatpak 模式安装制品和集成层，但不自动安装企业微信程序。
+- GitHub CI 把版本化 `install-wecomwine-VERSION.sh`、主 Runner、源码归档及统一
+  `RELEASE_SHA256SUMS` 一起输出。安装脚本下载并校验 Release 制品；若用户传入
+  自己合法持有的 `riched20.dll`，则仅在用户机器上生成并安装可选扩展。
+- `scripts/package-richedit-extension.sh DLL OUTPUT.flatpak` 是上述用户侧扩展打包
+  入口，固定校验摘要；它不负责获取微软文件。
 - 自建 runner 模式下 bootstrap 只安装 Gecko/Mono 扩展，不安装完整的
   `org.winehq.Wine` 应用；企业微信前缀落在新应用的用户级 Flatpak 数据目录。
 
 Flatpak runner 的权威构建实现是 `scripts/build-portal-wine.sh`；
 `scripts/ci-package-flatpaks.sh` 在 CI 节点完成传统 WoW64 配对构建并调用
 `scripts/package-flatpaks.sh` 生成多个单文件 Flatpak 和 `SHA256SUMS`。GitHub
-Actions 入口为 `.github/workflows/package-flatpaks.yml`。公开主包在 GitHub 托管的
-`ubuntu-24.04` Runner 构建；私有 RichEdit 构建才要求节点标签
-`self-hosted, linux, x64, wecom-flatpak`。私有 RichEdit 文件路径通过仓库变量
-`WECOM_RICHEDIT_DLL` 提供，不能存入 GitHub Secret 文本或源码检出目录。
+Actions 入口为 `.github/workflows/package-flatpaks.yml`，全部公开制品在 GitHub
+托管的 `ubuntu-24.04` Runner 构建。线上工作流不读取或生成微软 RichEdit DLL；
+用户侧安装脚本只读取用户明确提供的本地路径。
 
 用户级集成包在 KDE 环境还依赖 `kwriteconfig6`、`kreadconfig6`、`qdbus6`、
 `xprop`、`xwininfo` 和 coreutils `stdbuf`。规则安装会保留既有 KWin 规则列表，仅增加固定 ID

@@ -14,8 +14,10 @@
 - [x] 记录 Wine、企业微信、字体和运行时的第三方来源及再分发边界。
 - [x] 保留现有 `wecom-flatpak-poc` 状态/数据命名空间，支持以后原地升级。
 - [x] Flatpak 应用、桌面文件和可选扩展统一迁移到 `io.github.loveyu` 命名空间。
-- [x] 增加主 runner 与私有 RichEdit 扩展的多 Flatpak 打包脚本、自托管 CI
+- [x] 增加主 runner 与私有 RichEdit 扩展的多 Flatpak 打包脚本、GitHub 托管 CI
   工作流、SHA-256 清单和用户级安装入口；企业微信安装程序保持独立。
+- [x] 增加由 GitHub CI 生成的版本化 Release 安装脚本：自动下载、校验并安装
+  Runner/集成层，并支持用用户本地合法持有的 DLL 在用户机器打包 RichEdit。
 - [x] 修正 RichEdit 扩展挂载点未被 OSTree 保留的问题，并在 runner 沙箱内以
   固定 SHA-256 验证扩展 DLL 可见。
 - [x] 在本机安装两个 Flatpak 并独立安装企业微信；bootstrap 在自建 runner

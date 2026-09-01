@@ -30,3 +30,5 @@
 - 该 DLL 是 Microsoft 专有组件。本项目不保存、提交，也不随公开 Flatpak、
   源码归档或公开 CI artifact 再分发。自有机器之间可由私有 CI 将用户合法持有
   且摘要匹配的文件封装为独立 RichEdit Flatpak 扩展；扩展不得进入公开仓库。
+- 公开 Release 只发布安装脚本和不含微软 DLL 的 Wine Runner。安装脚本接受用户
+  本地路径并在用户机器生成扩展，不提供 RichEdit 下载地址，也不上传生成结果。

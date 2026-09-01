@@ -12,6 +12,7 @@ all: check
 
 check:
 	@bash -n scripts/*.sh
+	@bash -n scripts/install-release.sh.in
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 16
 	@if find . -path './.git' -prune -o -type f \
 		\( -iname '*.exe' -o -iname '*.msi' -o -iname '*.dll' -o -iname '*.bundle' -o -iname '*.flatpak' \) \
