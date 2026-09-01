@@ -1,5 +1,5 @@
 * text=auto eol=lf
-*.patch text eol=lf
+*.patch text eol=lf whitespace=-trailing-space
 *.sh text eol=lf
 *.service text eol=lf
 *.target text eol=lf

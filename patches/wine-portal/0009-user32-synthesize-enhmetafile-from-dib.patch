@@ -1,0 +1,142 @@
+From 8ec0144941c21f5a5f8af26627823b9a8e0a5009 Mon Sep 17 00:00:00 2001
+From: loveyu <i@loveyu.info>
+Date: Tue, 1 Sep 2026 12:05:00 +0800
+Subject: [PATCH] user32: Synthesize enhanced metafiles from DIB clipboard data
+
+WeCom 5 queries OLE clipboard images as CF_ENHMETAFILE/TYMED_ENHMF and
+does not fall back to CF_DIB, CF_BITMAP, or the registered PNG format.
+Linux clipboard managers normally expose raster images as image/bmp and
+image/png, which winex11 imports as CF_DIB and PNG respectively.
+
+Teach the clipboard synthesis layer to advertise CF_ENHMETAFILE when a
+DIB is present and record the DIB into an enhanced metafile on demand.
+This keeps the original raster formats available and avoids changing the
+X11 clipboard protocol.
+---
+ dlls/user32/clipboard.c | 67 ++++++++++++++++++++++++++++++++++++++++++++++++-
+ server/clipboard.c      |  5 ++--
+ 2 files changed, 68 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/user32/clipboard.c b/dlls/user32/clipboard.c
+index e39f917b1d4..f4d4b293cc5 100644
+--- a/dlls/user32/clipboard.c
++++ b/dlls/user32/clipboard.c
+@@ -459,8 +459,68 @@ static HANDLE render_synthesized_metafile( HANDLE data )
+     return ret;
+ }
+ 
++/* render a synthesized enhanced metafile containing DIB clipboard data */
++static HANDLE render_synthesized_enhmetafile_from_dib( HANDLE data )
++{
++    BITMAPINFO *bmi;
++    HANDLE ret = 0;
++    HDC hdc = 0, emf_dc = 0;
++    RECT frame;
++    SIZE_T size;
++    DWORD info_size;
++    INT width, height, horz_res, vert_res;
++
++    size = GlobalSize( data );
++    if (size < sizeof(BITMAPINFOHEADER)) return 0;
++    if (!(bmi = GlobalLock( data ))) return 0;
++
++    info_size = bitmap_info_size( bmi, DIB_RGB_COLORS );
++    width = bmi->bmiHeader.biWidth;
++    height = abs( bmi->bmiHeader.biHeight );
++    if (info_size >= size || width <= 0 || height <= 0) goto done;
++
++    if (!(hdc = NtUserGetDC( 0 ))) goto done;
++    horz_res = GetDeviceCaps( hdc, HORZRES );
++    vert_res = GetDeviceCaps( hdc, VERTRES );
++    if (!horz_res || !vert_res) goto done;
++
++    frame.left = frame.top = 0;
++    frame.right = MulDiv( width, GetDeviceCaps( hdc, HORZSIZE ) * 100, horz_res );
++    frame.bottom = MulDiv( height, GetDeviceCaps( hdc, VERTSIZE ) * 100, vert_res );
++    if (frame.right <= 0) frame.right = width;
++    if (frame.bottom <= 0) frame.bottom = height;
++
++    if (!(emf_dc = CreateEnhMetaFileW( hdc, NULL, &frame,
++                                       L"Wine\0Clipboard bitmap\0\0" )))
++        goto done;
++
++    SetStretchBltMode( emf_dc, COLORONCOLOR );
++    if (StretchDIBits( emf_dc, 0, 0, width, height, 0, 0, width, height,
++                       (const BYTE *)bmi + info_size, bmi, DIB_RGB_COLORS,
++                       SRCCOPY ) == GDI_ERROR)
++    {
++        HENHMETAFILE failed = CloseEnhMetaFile( emf_dc );
++        emf_dc = 0;
++        if (failed) DeleteEnhMetaFile( failed );
++        goto done;
++    }
++
++    ret = CloseEnhMetaFile( emf_dc );
++    emf_dc = 0;
++
++done:
++    if (emf_dc)
++    {
++        HENHMETAFILE failed = CloseEnhMetaFile( emf_dc );
++        if (failed) DeleteEnhMetaFile( failed );
++    }
++    if (hdc) NtUserReleaseDC( 0, hdc );
++    GlobalUnlock( data );
++    return ret;
++}
++
+ /* render a synthesized enhmetafile based on the metafile clipboard data */
+-static HANDLE render_synthesized_enhmetafile( HANDLE data )
++static HANDLE render_synthesized_enhmetafile( HANDLE data, UINT from )
+ {
+     METAFILEPICT *pict;
+     HANDLE ret = 0;
+@@ -469,6 +529,9 @@ static HANDLE render_synthesized_enhmetafile( HANDLE data )
+     UINT size;
+     void *bits;
+ 
++    if (from == CF_DIB || from == CF_DIBV5)
++        return render_synthesized_enhmetafile_from_dib( data );
++
+     if (!(pict = GlobalLock( data ))) return 0;
+ 
+     size = GetMetaFileBitsEx( pict->hMF, 0, NULL );
+@@ -508,7 +571,7 @@ HANDLE render_synthesized_format( UINT format, UINT from )
+         data = render_synthesized_metafile( data );
+         break;
+     case CF_ENHMETAFILE:
+-        data = render_synthesized_enhmetafile( data );
++        data = render_synthesized_enhmetafile( data, from );
+         break;
+     default:
+         assert( 0 );
+diff --git a/server/clipboard.c b/server/clipboard.c
+index 951823e6f63..5d917511234 100644
+--- a/server/clipboard.c
++++ b/server/clipboard.c
+@@ -188,13 +188,13 @@ static struct clipboard *get_process_clipboard(void)
+ /* add synthesized formats upon clipboard close */
+ static int synthesize_formats( struct clipboard *clipboard )
+ {
+-    static const unsigned int formats[][3] =
++    static const unsigned int formats[][4] =
+     {
+         { CF_TEXT, CF_OEMTEXT, CF_UNICODETEXT },
+         { CF_OEMTEXT, CF_UNICODETEXT, CF_TEXT },
+         { CF_UNICODETEXT, CF_TEXT, CF_OEMTEXT },
+         { CF_METAFILEPICT, CF_ENHMETAFILE },
+-        { CF_ENHMETAFILE, CF_METAFILEPICT },
++        { CF_ENHMETAFILE, CF_METAFILEPICT, CF_DIB, CF_DIBV5 },
+         { CF_BITMAP, CF_DIB, CF_DIBV5 },
+         { CF_DIB, CF_BITMAP, CF_DIBV5 },
+         { CF_DIBV5, CF_BITMAP, CF_DIB }
+@@ -218,6 +218,7 @@ static int synthesize_formats( struct clipboard *clipboard )
+         if (HAS_FORMAT( map, formats[i][0] )) continue;
+         if (HAS_FORMAT( map, formats[i][1] )) from = formats[i][1];
+         else if (HAS_FORMAT( map, formats[i][2] )) from = formats[i][2];
++        else if (HAS_FORMAT( map, formats[i][3] )) from = formats[i][3];
+         else continue;
+         if (!(format = add_format( clipboard, formats[i][0] ))) continue;
+         format->from = from;
+-- 
+2.51.0

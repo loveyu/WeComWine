@@ -1,0 +1,73 @@
+From 0a8c51cd8a31f27bc04b63e4027c7256214ef38a Mon Sep 17 00:00:00 2001
+From: loveyu <i@loveyu.info>
+Date: Tue, 1 Sep 2026 15:26:00 +0800
+Subject: [PATCH] riched20: Retry rejected static pictures as WeCom image objects
+
+WeCom 5 accepts images created by its screenshot tool with the private class
+{fa31b4ca-2991-45b2-a1eb-0a65d1f7d8da} and a NULL storage.  Its
+IRichEditOleCallback::QueryInsertObject implementation rejects the standard
+Picture.EnhMetafile and Picture.Dib classes with E_INVALIDARG, even when the
+presentation and structured storage are valid.
+
+Preserve the standard RichEdit path first.  When the host specifically rejects
+a static picture with E_INVALIDARG, retry the insertion callback using the
+class and storage shape used by WeCom's own successful image objects.  Store
+the accepted REOBJECT shape while retaining the standard picture IOleObject
+and presentation cache.
+---
+ dlls/riched20/caret.c | 27 +++++++++++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/dlls/riched20/caret.c b/dlls/riched20/caret.c
+index 259be526b22..6f5955d258d 100644
+--- a/dlls/riched20/caret.c
++++ b/dlls/riched20/caret.c
+@@ -456,6 +456,11 @@ static struct re_object* create_re_object(const REOBJECT *reo, ME_Run *run)
+   return reobj;
+ }
+ 
++static const CLSID CLSID_WeComImage =
++{
++  0xfa31b4ca, 0x2991, 0x45b2, {0xa1, 0xeb, 0x0a, 0x65, 0xd1, 0xf7, 0xd8, 0xda}
++};
++
+ HRESULT editor_insert_oleobj(ME_TextEditor *editor, const REOBJECT *reo)
+ {
+   ME_Run *run, *prev;
+@@ -465,6 +470,7 @@ HRESULT editor_insert_oleobj(ME_TextEditor *editor, const REOBJECT *reo)
+   ME_Style *style;
+   HRESULT hr;
+   SIZEL extent;
++  REOBJECT compat_reo;
+ 
+   if (editor->lpOleCallback)
+   {
+@@ -473,5 +479,26 @@ HRESULT editor_insert_oleobj(ME_TextEditor *editor, const REOBJECT *reo)
+     hr = IRichEditOleCallback_QueryInsertObject(editor->lpOleCallback, (LPCLSID)&reo->clsid, reo->pstg, REO_CP_SELECTION);
+     TRACE("QueryInsertObject returned %#lx\n", hr);
++    if (hr == E_INVALIDARG &&
++        (IsEqualCLSID(&reo->clsid, &CLSID_Picture_EnhMetafile) ||
++         IsEqualCLSID(&reo->clsid, &CLSID_Picture_Dib)))
++    {
++      compat_reo = *reo;
++      compat_reo.clsid = CLSID_WeComImage;
++      compat_reo.pstg = NULL;
++
++      TRACE("retrying rejected static picture as clsid %s storage %p\n",
++            debugstr_guid(&compat_reo.clsid), compat_reo.pstg);
++      hr = IRichEditOleCallback_QueryInsertObject(editor->lpOleCallback,
++                                                   &compat_reo.clsid,
++                                                   compat_reo.pstg,
++                                                   REO_CP_SELECTION);
++      TRACE("compatibility QueryInsertObject returned %#lx\n", hr);
++      if (hr == S_OK)
++      {
++        TRACE("using accepted compatibility image class\n");
++        reo = &compat_reo;
++      }
++    }
+     if (hr != S_OK)
+       return hr;
+   }
+-- 
+2.51.0

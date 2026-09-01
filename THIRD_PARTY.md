@@ -21,3 +21,12 @@
 - CJK 字体只读复用宿主 Noto Sans CJK，不复制到项目或发行包。
 - Freedesktop Platform、Wine Flatpak base、Mono、Gecko 和图形扩展由 Flatpak
   依赖解析获取；正式发布时需要同步生成完整的第三方许可证清单。
+
+## Microsoft RichEdit A/B 组件
+
+- 原生 RichEdit 仅用于验证企业微信图片粘贴兼容性；当前验证样本为 Win2k
+  `riched20.dll`，SHA-256 为
+  `c741226a0465a8c4edcbe0f3af54de02e21931122afe3a4dad8d49553fececcc`。
+- 该 DLL 是 Microsoft 专有组件。本项目不保存、提交，也不随公开 Flatpak、
+  源码归档或公开 CI artifact 再分发。自有机器之间可由私有 CI 将用户合法持有
+  且摘要匹配的文件封装为独立 RichEdit Flatpak 扩展；扩展不得进入公开仓库。

@@ -1,0 +1,46 @@
+From 2a37b7027c38d5920a23ec4d32b45d69448d3308 Mon Sep 17 00:00:00 2001
+From: loveyu <i@loveyu.info>
+Date: Tue, 1 Sep 2026 18:35:00 +0800
+Subject: [PATCH] comdlg32: trace file dialog event callback addresses
+
+Log the advised event interface, vtable, and callback address while the
+commdlg trace channel is enabled.  This makes it possible to identify
+application event sinks that consume file selections through window hooks
+instead of the documented IFileDialog result getters.
+---
+ dlls/comdlg32/itemdlg.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/dlls/comdlg32/itemdlg.c b/dlls/comdlg32/itemdlg.c
+index 5bd8ca6d3c2..eea1bdac3aa 100644
+--- a/dlls/comdlg32/itemdlg.c
++++ b/dlls/comdlg32/itemdlg.c
+@@ -186,6 +186,8 @@ static HRESULT events_OnFileOk(FileDialogImpl *This)
+     LIST_FOR_EACH_ENTRY(cursor, &This->events_clients, events_client, entry)
+     {
+         TRACE("Notifying %p\n", cursor);
++        TRACE("event iface %p vtbl %p callback %p\n", cursor->pfde,
++              cursor->pfde->lpVtbl, cursor->pfde->lpVtbl->OnFileOk);
+         hr = IFileDialogEvents_OnFileOk(cursor->pfde, (IFileDialog*)&This->IFileDialog2_iface);
+         if(FAILED(hr) && hr != E_NOTIMPL)
+             break;
+@@ -239,6 +241,8 @@ static void events_OnFolderChange(FileDialogImpl *This)
+     LIST_FOR_EACH_ENTRY(cursor, &This->events_clients, events_client, entry)
+     {
+         TRACE("Notifying %p\n", cursor);
++        TRACE("event iface %p vtbl %p callback %p\n", cursor->pfde,
++              cursor->pfde->lpVtbl, cursor->pfde->lpVtbl->OnFolderChange);
+         IFileDialogEvents_OnFolderChange(cursor->pfde, (IFileDialog*)&This->IFileDialog2_iface);
+     }
+ 
+@@ -258,6 +262,8 @@ static void events_OnSelectionChange(FileDialogImpl *This)
+     LIST_FOR_EACH_ENTRY(cursor, &This->events_clients, events_client, entry)
+     {
+         TRACE("Notifying %p\n", cursor);
++        TRACE("event iface %p vtbl %p callback %p\n", cursor->pfde,
++              cursor->pfde->lpVtbl, cursor->pfde->lpVtbl->OnSelectionChange);
+         IFileDialogEvents_OnSelectionChange(cursor->pfde, (IFileDialog*)&This->IFileDialog2_iface);
+     }
+ 
+-- 
+2.51.0

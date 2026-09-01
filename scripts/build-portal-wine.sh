@@ -16,7 +16,7 @@ APP_DIR="${BUILD_ROOT}/appdir"
 SOURCE_ARCHIVE="${CACHE_DIR}/wine-${PORTAL_WINE_VERSION}.tar.xz"
 PATCH_DIR="${PROJECT_DIR}/patches/wine-portal"
 LOCAL_REMOTE_URL="file://${PORTAL_FLATPAK_REPO}"
-BUILD_JOBS="${BUILD_JOBS:-12}"
+BUILD_JOBS="${BUILD_JOBS:-4}"
 
 rotate_log "${LOG_FILE}" 104857600
 exec >> "${LOG_FILE}" 2>&1
@@ -43,10 +43,12 @@ printf '%s portal Wine build start\n' "$(date --iso-8601=seconds)"
 
 write_status "${STATUS_FILE}" "install-sdk" "org.freedesktop.Sdk//25.08"
 sdk_refs=(
+    "org.freedesktop.Platform//25.08"
     "org.freedesktop.Sdk//25.08"
     "org.freedesktop.Sdk.Compat.i386//25.08"
     "org.freedesktop.Sdk.Extension.toolchain-i386//25.08"
     "org.freedesktop.Sdk.Extension.mingw-w64//25.08"
+    "${FLATPAK_APP}//${FLATPAK_BRANCH}"
 )
 for sdk_ref in "${sdk_refs[@]}"; do
     if ! flatpak info --user "${sdk_ref}" >/dev/null 2>&1; then
@@ -85,6 +87,12 @@ fi
 
 write_status "${STATUS_FILE}" "initialize-appdir" "${PORTAL_FLATPAK_APP}"
 mkdir -p "${BUILD64_DIR}" "${BUILD32_DIR}" "${PORTAL_FLATPAK_REPO}"
+if [[ -f "${APP_DIR}/metadata" ]] && \
+   ! grep -Fqx "name=${PORTAL_FLATPAK_APP}" "${APP_DIR}/metadata"; then
+    legacy_app_dir="${APP_DIR}.legacy.$(date +%Y%m%d%H%M%S)"
+    mv "${APP_DIR}" "${legacy_app_dir}"
+    printf 'preserved previous appdir at %s\n' "${legacy_app_dir}"
+fi
 if [[ ! -f "${APP_DIR}/metadata" ]]; then
     flatpak build-init \
         --arch=x86_64 \
@@ -178,10 +186,20 @@ flatpak build \
             -o /app/share/wecom-portal-tests/clipboard-smoke.exe \
             /run/project/tests/clipboard-smoke.c \
             -lole32 -lgdi32
+        i686-w64-mingw32-gcc -municode -O2 -s \
+            -o /app/share/wecom-portal-tests/richedit-image-paste-smoke.exe \
+            /run/project/tests/richedit-image-paste-smoke.c \
+            -lole32 -lgdi32 -luuid
     '
 
 write_status "${STATUS_FILE}" "finish-flatpak" "${PORTAL_FLATPAK_APP}"
-if [[ ! -f "${BUILD_ROOT}/.finished" ]]; then
+# Flatpak extensions are mounted below an existing directory in the parent app.
+# Keep a marker file so OSTree preserves the otherwise empty mount point.
+install -d -m 0755 "${APP_DIR}/files/share/wecom-richedit"
+: > "${APP_DIR}/files/share/wecom-richedit/.extension-mount-point"
+finish_signature="${PORTAL_FLATPAK_APP}:${PORTAL_PATCHSET}:richedit-extension-v1"
+if [[ ! -f "${BUILD_ROOT}/.finished" ]] || \
+   [[ "$(<"${BUILD_ROOT}/.finished")" != "${finish_signature}" ]]; then
     gl_merge_dirs='vulkan/icd.d;glvnd/egl_vendor.d;egl/egl_external_platform.d;OpenCL/vendors;lib/dri;lib/d3d;lib/gbm;vulkan/explicit_layer.d;vulkan/implicit_layer.d;vdpau'
     flatpak build-finish \
         --command=wine \
@@ -208,8 +226,12 @@ if [[ ! -f "${BUILD_ROOT}/.finished" ]]; then
         --extension=org.freedesktop.Platform.codecs_extra.i386=version=25.08-extra \
         --extension=org.winehq.Wine.gecko=directory=share/wine/gecko \
         --extension=org.winehq.Wine.mono=directory=share/wine/mono \
+        --extension="${RICHEDIT_EXTENSION_ID}=directory=share/wecom-richedit" \
+        --extension="${RICHEDIT_EXTENSION_ID}=version=${RICHEDIT_EXTENSION_BRANCH}" \
+        --extension="${RICHEDIT_EXTENSION_ID}=no-autodownload=true" \
+        --extension="${RICHEDIT_EXTENSION_ID}=autodelete=false" \
         "${APP_DIR}"
-    printf '%s\n' "${PORTAL_PATCHSET}" > "${BUILD_ROOT}/.finished"
+    printf '%s\n' "${finish_signature}" > "${BUILD_ROOT}/.finished"
 fi
 
 write_status "${STATUS_FILE}" "export-flatpak" "${PORTAL_FLATPAK_REPO}"

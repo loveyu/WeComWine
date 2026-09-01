@@ -1,0 +1,70 @@
+From 3ebea47d13f9a148ea88a8b91949f58c69f8544c Mon Sep 17 00:00:00 2001
+From: loveyu <i@loveyu.info>
+Date: Tue, 1 Sep 2026 12:55:00 +0800
+Subject: [PATCH] riched20: Use picture CLSIDs for pasted static images
+
+RichEdit currently creates pasted metafiles and bitmaps with a default
+handler for CLSID_NULL. Applications that validate object insertion through
+IRichEditOleCallback::QueryInsertObject can reject that class, even though
+the clipboard data and OLE cache are otherwise valid.
+
+Use the standard static picture class for each medium. Also populate the
+pasted enhanced-metafile extent from its frame, since the data cache does not
+currently report extents for CF_ENHMETAFILE and an object with a zero extent
+is not visible.
+---
+ dlls/riched20/editor.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/riched20/editor.c b/dlls/riched20/editor.c
+index e83dff38b6f..f718b367fe8 100644
+--- a/dlls/riched20/editor.c
++++ b/dlls/riched20/editor.c
+@@ -1121,6 +1121,7 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+   STGMEDIUM           stgm;
+   FORMATETC           fm;
+   CLSID               clsid;
++  const CLSID        *picture_clsid;
+   HRESULT             hr = E_FAIL;
+   DWORD               conn;
+ 
+@@ -1130,11 +1131,13 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+       stgm.hEnhMetaFile = hemf;
+       fm.cfFormat = CF_ENHMETAFILE;
++      picture_clsid = &CLSID_Picture_EnhMetafile;
+   }
+   else if (hbmp)
+   {
+       stgm.tymed = TYMED_GDI;
+       stgm.hBitmap = hbmp;
+       fm.cfFormat = CF_BITMAP;
++      picture_clsid = &CLSID_Picture_Dib;
+   }
+   else return E_FAIL;
+ 
+@@ -1146,7 +1149,7 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+   fm.lindex = -1;
+   fm.tymed = stgm.tymed;
+ 
+-  if (OleCreateDefaultHandler(&CLSID_NULL, NULL, &IID_IOleObject, (void**)&lpObject) == S_OK &&
++  if (OleCreateDefaultHandler(picture_clsid, NULL, &IID_IOleObject, (void**)&lpObject) == S_OK &&
+       IRichEditOle_GetClientSite(editor->richole, &lpClientSite) == S_OK &&
+       IOleObject_SetClientSite(lpObject, lpClientSite) == S_OK &&
+       IOleObject_GetUserClassID(lpObject, &clsid) == S_OK &&
+@@ -2231,7 +2234,14 @@ static HRESULT paste_emf(ME_TextEditor *editor, FORMATETC *fmt, STGMEDIUM *med)
+ {
+     HRESULT hr;
+     SIZEL sz = {0, 0};
++    ENHMETAHEADER header;
+ 
++    if (GetEnhMetaFileHeader( med->hEnhMetaFile, sizeof(header), &header ) == sizeof(header))
++    {
++        /* insert_static_object expects RTF picture goal dimensions in twips. */
++        sz.cx = MulDiv( header.rclFrame.right - header.rclFrame.left, 144, 254 );
++        sz.cy = MulDiv( header.rclFrame.bottom - header.rclFrame.top, 144, 254 );
++    }
+     hr = insert_static_object( editor, med->hEnhMetaFile, NULL, &sz );
+     if (SUCCEEDED(hr))
+     {
+-- 
+2.51.0

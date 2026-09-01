@@ -7,6 +7,7 @@ source "${SCRIPT_DIR}/common.sh"
 
 STATUS_FILE="${STATE_DIR}/app.status"
 LOCK_FILE="${STATE_DIR}/app.lock"
+INSTANCE_FILE="${STATE_DIR}/app.instance"
 PROGRAM_FILE="${STATE_DIR}/program.path"
 LOG_FILE="${LOG_DIR}/app.log"
 
@@ -27,15 +28,38 @@ fi
 program_windows="$(<"${PROGRAM_FILE}")"
 scale_factor="$(detect_system_scale_factor)"
 wine_dpi="$(scale_factor_to_wine_dpi "${scale_factor}")"
+force_portal="${WECOM_FORCE_PORTAL:-1}"
+if [[ "${force_portal}" != "0" && "${force_portal}" != "1" ]]; then
+    write_status "${STATUS_FILE}" "failed" \
+        "invalid-WECOM_FORCE_PORTAL=${force_portal}"
+    printf 'WECOM_FORCE_PORTAL 只允许 0 或 1，当前值：%s\n' \
+        "${force_portal}" >&2
+    exit 64
+fi
+if [[ "${force_portal}" == "1" ]]; then
+    export WINE_FORCE_PORTAL=1
+else
+    unset WINE_FORCE_PORTAL
+fi
 write_status "${STATUS_FILE}" "starting" \
-    "${program_windows},scale=${scale_factor},dpi=${wine_dpi}"
-printf '%s starting %s scale=%s dpi=%s\n' \
+    "${program_windows},scale=${scale_factor},dpi=${wine_dpi},force-portal=${force_portal}"
+printf '%s starting %s scale=%s dpi=%s force-portal=%s\n' \
     "$(date --iso-8601=seconds)" "${program_windows}" \
-    "${scale_factor}" "${wine_dpi}"
+    "${scale_factor}" "${wine_dpi}" "${force_portal}"
 
 runner_pid=''
 shadow_suppressor_pid=''
 stop_requested=0
+wecom_runtime_args=()
+
+# WeCom's bundled Chromium repeatedly respawns its GPU process when ANGLE
+# cannot create a D3D11 or D3D9 device under Wine.  Besides wasting CPU, the
+# restart storm has preceded reproducible stack-overflow crashes in the main
+# client.  Keep Chromium on its software compositing path by default; this can
+# be disabled temporarily when testing a newer Wine graphics stack.
+if [[ "${WECOM_DISABLE_GPU:-1}" != "0" ]]; then
+    wecom_runtime_args+=(--disable-gpu)
+fi
 
 stop_shadow_suppressor() {
     if [[ -n "${shadow_suppressor_pid}" ]]; then
@@ -45,9 +69,20 @@ stop_shadow_suppressor() {
     fi
 }
 
+stop_flatpak_instance() {
+    local instance_id=''
+
+    if [[ -s "${INSTANCE_FILE}" ]]; then
+        IFS= read -r instance_id < "${INSTANCE_FILE}" || true
+    fi
+    if [[ "${instance_id}" =~ ^[0-9]+$ ]]; then
+        flatpak kill "${instance_id}" 2>/dev/null || true
+    fi
+}
+
 stop_runner() {
     stop_requested=1
-    flatpak kill "${ACTIVE_FLATPAK_APP}" 2>/dev/null || true
+    stop_flatpak_instance
     if [[ -n "${runner_pid}" ]]; then
         kill "${runner_pid}" 2>/dev/null || true
     fi
@@ -57,21 +92,33 @@ trap stop_runner TERM INT
 trap stop_shadow_suppressor EXIT
 
 if [[ "${WECOM_DISABLE_WINDOW_SHADOW:-1}" != "0" ]]; then
-    "${SCRIPT_DIR}/suppress-wecom-shadow.sh" &
+    "${SCRIPT_DIR}/suppress-wecom-shadow.sh" 9>&- &
     shadow_suppressor_pid="$!"
 fi
 
 set +e
-flatpak_wine_scaled "${wine_dpi}" wine "${program_windows}" &
+printf '%s runtime args:' "$(date --iso-8601=seconds)"
+printf ' %q' "${wecom_runtime_args[@]}"
+printf '\n'
+: > "${INSTANCE_FILE}"
+exec 8> "${INSTANCE_FILE}"
+FLATPAK_INSTANCE_ID_FD=8 \
+    flatpak_wine_scaled "${wine_dpi}" wine "${program_windows}" \
+    "${wecom_runtime_args[@]}" 9>&- &
 runner_pid="$!"
+exec 8>&-
 sleep 2
 if kill -0 "${runner_pid}" 2>/dev/null; then
     write_status "${STATUS_FILE}" "running" \
-        "${program_windows},scale=${scale_factor},dpi=${wine_dpi}"
+        "${program_windows},scale=${scale_factor},dpi=${wine_dpi},force-portal=${force_portal}"
 fi
 wait "${runner_pid}"
 wine_exit_code="$?"
-flatpak kill "${ACTIVE_FLATPAK_APP}" 2>/dev/null || true
+# Wine helpers such as wineserver and the Bugly crash handler can outlive the
+# main executable.  Stop only this launch's Flatpak instance so those helpers
+# cannot retain the prefix or lock, while independent builds and smoke tests
+# using the same application ID remain untouched.
+stop_flatpak_instance
 stop_shadow_suppressor
 set -e
 

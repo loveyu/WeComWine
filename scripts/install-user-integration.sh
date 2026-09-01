@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="${WECOM_PROJECT_DIR:-$(cd -- "${SCRIPT_DIR}/.." && pwd -P)}"
 XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 APPLICATION_DIR="${XDG_DATA_HOME}/applications"
-DESKTOP_FILE="io.github.huzhiyu.WeComWine.desktop"
+DESKTOP_FILE="io.github.loveyu.WeComWine.desktop"
 
 install -d "${APPLICATION_DIR}"
 install -m 644 \

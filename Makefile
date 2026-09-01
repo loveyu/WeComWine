@@ -6,15 +6,15 @@ DIST_DIR ?= dist
 SOURCE_DATE_EPOCH ?= 0
 ARCHIVE := $(DIST_DIR)/$(PROJECT)-$(VERSION).tar.gz
 
-.PHONY: all check install-user dist clean
+.PHONY: all check install-user flatpak-bundles dist clean
 
 all: check
 
 check:
 	@bash -n scripts/*.sh
-	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 6
+	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 16
 	@if find . -path './.git' -prune -o -type f \
-		\( -iname '*.exe' -o -iname '*.msi' -o -iname '*.bundle' -o -iname '*.flatpak' \) \
+		\( -iname '*.exe' -o -iname '*.msi' -o -iname '*.dll' -o -iname '*.bundle' -o -iname '*.flatpak' \) \
 		-print -quit | grep -q .; then \
 		echo '错误：仓库中不能包含安装包或二进制发行制品' >&2; exit 1; \
 	fi
@@ -22,6 +22,9 @@ check:
 
 install-user: check
 	@./scripts/install-user.sh
+
+flatpak-bundles: check
+	@./scripts/package-flatpaks.sh
 
 dist: check
 	@mkdir -p "$(DIST_DIR)"

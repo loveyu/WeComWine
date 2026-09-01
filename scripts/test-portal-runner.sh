@@ -75,12 +75,32 @@ for mode in open opena save savea folder ifileopen ifilesave hook; do
     sleep 1
 done
 
+# WeCom registers hooks/listeners on some real dialogs. Auto policy correctly
+# preserves those Win32 semantics by falling back to Wine, but the dedicated
+# WeCom launcher deliberately prioritizes the desktop portal. Verify the force
+# override reaches the portal even when OFN_ENABLEHOOK is present.
+printf '%s test mode=forced-hook\n' "$(date --iso-8601=seconds)"
+set +e
+WINE_FORCE_PORTAL=1 flatpak_wine wine "${TEST_EXE}" hook
+test_exit="$?"
+set -e
+printf '%s test mode=forced-hook exit=%s\n' \
+    "$(date --iso-8601=seconds)" "${test_exit}"
+while read -r instance_id; do
+    [[ -n "${instance_id}" ]] || continue
+    if ! grep -Fxq "${instance_id}" <<< "${baseline_instances}"; then
+        flatpak kill "${instance_id}" 2>/dev/null || true
+    fi
+done < <(flatpak ps --columns=instance,application 2>/dev/null | \
+    awk -v app="${PORTAL_FLATPAK_APP}" '$2 == app { print $1 }')
+sleep 1
+
 cleanup
 monitor_pid=''
 
 open_calls="$(grep -c 'member=OpenFile' "${DBUS_LOG}" || true)"
 save_calls="$(grep -c 'member=SaveFile' "${DBUS_LOG}" || true)"
-if (( open_calls != 4 || save_calls != 3 )); then
+if (( open_calls != 5 || save_calls != 3 )); then
     write_status "${STATUS_FILE}" "failed" "open=${open_calls},save=${save_calls}"
     exit 31
 fi

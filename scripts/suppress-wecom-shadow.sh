@@ -6,9 +6,11 @@ export LC_ALL=C
 
 readonly CLIENT_LIST_PROPERTY="_NET_CLIENT_LIST_STACKING"
 event_pid=''
+declare -A suppressed_windows=()
 
 log() {
-    printf '%s shadow-suppressor: %s\n' "$(date --iso-8601=seconds)" "$*"
+    printf '%s shadow-suppressor: %s\n' \
+        "$(date '+%Y-%m-%dT%H:%M:%S.%3N%:z')" "$*"
 }
 
 window_properties() {
@@ -99,15 +101,17 @@ is_wecom_shadow() {
     margin_top=$(( inner_y - outer_y ))
     margin_bottom=$(( outer_y + outer_height - inner_y - inner_height ))
 
-    # WeCom renders its shadow as an unfocusable, centered ARGB dialog around
-    # the real window. The login shadow is symmetric, while the signed-in main
-    # window uses a larger top margin than bottom margin. Validate each edge
-    # instead of requiring the two window centers to be identical.
+    # WeCom renders its shadow as an unfocusable ARGB dialog around the real
+    # window. Forced system borders can shift the real window within that
+    # dialog, so allow asymmetric (and even zero-width) edges while still
+    # requiring a material margin in both dimensions.
     for margin in \
         "${margin_left}" "${margin_right}" "${margin_top}" "${margin_bottom}"; do
-        (( margin >= 4 && margin <= 128 )) || return 1
+        (( margin >= 0 && margin <= 128 )) || return 1
     done
-    (( $(absolute_value "$(( margin_left - margin_right ))") <= 4 )) || return 1
+    (( margin_left + margin_right >= 8 )) || return 1
+    (( margin_top + margin_bottom >= 8 )) || return 1
+    (( $(absolute_value "$(( margin_left - margin_right ))") <= 64 )) || return 1
     (( $(absolute_value "$(( margin_top - margin_bottom ))") <= 64 )) || return 1
 }
 
@@ -117,27 +121,64 @@ suppress_window() {
 
     is_wecom_shadow "${window_id}" || return 0
 
+    # WeCom periodically removes the opacity property from a live shadow
+    # window. Re-applying it produces a PropertyNotify tug-of-war and was the
+    # only controllable external action observed at the timestamp of two
+    # stack-overflow dumps. Suppress each XID once per window lifetime; a
+    # later scan drops the cache entry after the XID leaves the window tree.
+    if [[ -n "${suppressed_windows[${window_id}]:-}" ]]; then
+        return 0
+    fi
+
     opacity="$(xprop -id "${window_id}" _NET_WM_WINDOW_OPACITY 2>/dev/null || true)"
     if [[ "${opacity}" == *'= 0' ]]; then
+        suppressed_windows["${window_id}"]=1
         return 0
     fi
 
     if xprop -id "${window_id}" \
         -f _NET_WM_WINDOW_OPACITY 32c \
         -set _NET_WM_WINDOW_OPACITY 0 >/dev/null 2>&1; then
+        suppressed_windows["${window_id}"]=1
         log "suppressed window=${window_id}"
     fi
 }
 
 scan_windows() {
-    local clients=''
+    local candidates=''
+    local cached_window_id=''
+    local window_tree=''
     local window_id=''
+    local -A active_windows=()
 
-    clients="$(xprop -root "${CLIENT_LIST_PROPERTY}" 2>/dev/null || true)"
+    # The full tree includes managed, reparented and override-redirect Wine
+    # windows. Pre-filter it before launching xprop so a fallback scan only
+    # inspects sizeable, untitled WeCom candidates rather than every desktop
+    # and helper window.
+    window_tree="$(xwininfo -root -tree 2>/dev/null || true)"
+    while IFS= read -r window_id; do
+        [[ -n "${window_id}" ]] || continue
+        active_windows["${window_id}"]=1
+    done < <(awk '
+        tolower($0) ~ /\("wxwork\.exe" "wxwork\.exe"\)/ { print $1 }
+    ' <<< "${window_tree}")
+
+    candidates="$(awk '
+        tolower($0) ~ /\(has no name\): \("wxwork\.exe" "wxwork\.exe"\)/ {
+            split($7, dimensions, "x")
+            if (dimensions[1] + 0 > 8 && dimensions[2] + 0 > 8) print $1
+        }
+    ' <<< "${window_tree}")"
     while IFS= read -r window_id; do
         [[ -n "${window_id}" ]] || continue
         suppress_window "${window_id}"
-    done < <(grep -Eo '0x[0-9a-fA-F]+' <<< "${clients}" || true)
+    done <<< "${candidates}"
+
+    for cached_window_id in "${!suppressed_windows[@]}"; do
+        if [[ -z "${active_windows[${cached_window_id}]:-}" ]]; then
+            unset 'suppressed_windows['"${cached_window_id}"']'
+        fi
+    done
 }
 
 stop_event_reader() {
@@ -150,7 +191,7 @@ stop_event_reader() {
 trap 'stop_event_reader; exit 0' TERM INT
 trap stop_event_reader EXIT
 
-for command_name in xprop xwininfo awk grep; do
+for command_name in xprop xwininfo awk grep stdbuf; do
     if ! command -v "${command_name}" >/dev/null 2>&1; then
         log "disabled: missing command=${command_name}"
         exit 69
@@ -169,12 +210,30 @@ fi
 
 while true; do
     coproc WECOM_XPROP_EVENTS {
-        exec xprop -spy -root "${CLIENT_LIST_PROPERTY}" 2>/dev/null
+        exec stdbuf -oL xprop -spy -root \
+            "${CLIENT_LIST_PROPERTY}" 2>/dev/null
     }
     event_pid="${WECOM_XPROP_EVENTS_PID}"
 
-    while IFS= read -r -u "${WECOM_XPROP_EVENTS[0]}" _event; do
-        scan_windows
+    while true; do
+        if IFS= read -r -t 5 \
+            -u "${WECOM_XPROP_EVENTS[0]}" _event; then
+            scan_windows
+            # Wine can publish the window list before its WM_CLASS, transient
+            # relationship and state hints are all visible.
+            sleep 0.1
+            scan_windows
+            sleep 0.4
+            scan_windows
+        elif kill -0 "${event_pid}" 2>/dev/null; then
+            # Wine does not expose a single event that means "all window hints
+            # are complete". This low-frequency fallback is required for the
+            # delayed updates observed during startup and popup creation. A
+            # five-second interval keeps the steady-state overhead negligible.
+            scan_windows
+        else
+            break
+        fi
     done
 
     wait "${event_pid}" 2>/dev/null || true

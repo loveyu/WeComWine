@@ -1,0 +1,32 @@
+From 46c37fc74450b8703f090691052894710392aa25 Mon Sep 17 00:00:00 2001
+From: loveyu <i@loveyu.info>
+Date: Tue, 1 Sep 2026 13:21:00 +0800
+Subject: [PATCH] riched20: Accept an existing static picture cache
+
+Static picture handlers create their presentation cache when the handler is
+constructed. A subsequent IOleCache::Cache call therefore returns
+CACHE_S_SAMECACHE instead of S_OK. Both are successful HRESULTs, but the
+static-object insertion path only accepts the latter and aborts before
+IRichEditOleCallback::QueryInsertObject.
+
+Accept every successful cache result so enhanced-metafile pictures can reach
+the application insertion callback.
+---
+ dlls/riched20/editor.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dlls/riched20/editor.c b/dlls/riched20/editor.c
+index f718b367fe8..b29f361069e 100644
+--- a/dlls/riched20/editor.c
++++ b/dlls/riched20/editor.c
+@@ -1153,7 +1153,7 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+       IOleObject_SetClientSite(lpObject, lpClientSite) == S_OK &&
+       IOleObject_GetUserClassID(lpObject, &clsid) == S_OK &&
+       IOleObject_QueryInterface(lpObject, &IID_IOleCache, (void**)&lpOleCache) == S_OK &&
+-      IOleCache_Cache(lpOleCache, &fm, 0, &conn) == S_OK &&
++      SUCCEEDED(IOleCache_Cache(lpOleCache, &fm, 0, &conn)) &&
+       IOleObject_QueryInterface(lpObject, &IID_IDataObject, (void**)&lpDataObject) == S_OK &&
+       IDataObject_SetData(lpDataObject, &fm, &stgm, TRUE) == S_OK)
+   {
+-- 
+2.51.0

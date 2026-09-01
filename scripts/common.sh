@@ -16,23 +16,31 @@ DATA_DIR="${WECOM_DATA_DIR:-${XDG_DATA_HOME}/wecom-flatpak-poc}"
 LOG_DIR="${WECOM_LOG_DIR:-${STATE_DIR}/logs}"
 SCALE_FACTOR_OVERRIDE="${WECOM_SCALE_FACTOR:-}"
 
+NATIVE_RICHEDIT_DIR="${WECOM_NATIVE_RICHEDIT_DIR:-${DATA_DIR}/native-richedit}"
+NATIVE_RICHEDIT_DLL_HOST="${NATIVE_RICHEDIT_DIR}/riched20.dll"
+NATIVE_RICHEDIT_SHA256="c741226a0465a8c4edcbe0f3af54de02e21931122afe3a4dad8d49553fececcc"
+
 FLATPAK_APP="org.winehq.Wine"
 FLATPAK_BRANCH="stable-25.08"
 FLATPAK_REF="${FLATPAK_APP}//${FLATPAK_BRANCH}"
 FLATPAK_GECKO_REF="runtime/org.winehq.Wine.gecko/x86_64/${FLATPAK_BRANCH}"
 FLATPAK_MONO_REF="runtime/org.winehq.Wine.mono/x86_64/${FLATPAK_BRANCH}"
-FLATPAK_REMOTE="flathub-wecom"
-FLATPAK_REMOTE_URL="https://mirrors.ustc.edu.cn/flathub"
+FLATPAK_REMOTE="${WECOM_FLATPAK_REMOTE:-flathub-wecom}"
+FLATPAK_REMOTE_URL="${WECOM_FLATPAK_REMOTE_URL:-https://mirrors.ustc.edu.cn/flathub}"
 FLATPAK_GPG_KEY="${XDG_DATA_HOME}/flatpak/repo/flathub.trustedkeys.gpg"
 
-PORTAL_FLATPAK_APP="io.github.huzhiyu.WeComWine"
+PORTAL_FLATPAK_APP="io.github.loveyu.WeComWine"
 PORTAL_FLATPAK_BRANCH="stable-25.08"
 PORTAL_FLATPAK_REMOTE="wecom-wine-local"
-PORTAL_FLATPAK_REPO="${DATA_DIR}/flatpak-repo"
+PORTAL_FLATPAK_REPO="${WECOM_PORTAL_FLATPAK_REPO:-${DATA_DIR}/flatpak-repo}"
+PORTAL_WINEPREFIX_HOST="${HOME}/.var/app/${PORTAL_FLATPAK_APP}/data/wine-wecom"
 PORTAL_WINE_VERSION="11.0"
 PORTAL_WINE_SHA256="c07a6857933c1fc60dff5448d79f39c92481c1e9db5aa628db9d0358446e0701"
 PORTAL_WINE_URL="https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz"
-PORTAL_PATCHSET="mr10060-f36314a-wecom2"
+PORTAL_PATCHSET="mr10060-f36314a-wecom10"
+RICHEDIT_EXTENSION_ID="io.github.loveyu.WeComWine.RichEdit"
+RICHEDIT_EXTENSION_BRANCH="${PORTAL_FLATPAK_BRANCH}"
+RICHEDIT_EXTENSION_REF="runtime/${RICHEDIT_EXTENSION_ID}/x86_64/${RICHEDIT_EXTENSION_BRANCH}"
 
 ORIGINAL_WINEPREFIX_SANDBOX="/var/data/wine-wecom"
 ORIGINAL_WINEPREFIX_HOST="${HOME}/.var/app/${FLATPAK_APP}/data/wine-wecom"
@@ -53,6 +61,9 @@ fi
 if [[ -f "${SHARED_WINEPREFIX_HOST}/system.reg" ]]; then
     WINEPREFIX_SANDBOX="${SHARED_WINEPREFIX_HOST}"
     WINEPREFIX_HOST="${SHARED_WINEPREFIX_HOST}"
+elif [[ "${ACTIVE_FLATPAK_APP}" == "${PORTAL_FLATPAK_APP}" ]]; then
+    WINEPREFIX_SANDBOX="${ORIGINAL_WINEPREFIX_SANDBOX}"
+    WINEPREFIX_HOST="${PORTAL_WINEPREFIX_HOST}"
 else
     WINEPREFIX_SANDBOX="${ORIGINAL_WINEPREFIX_SANDBOX}"
     WINEPREFIX_HOST="${ORIGINAL_WINEPREFIX_HOST}"
@@ -160,6 +171,7 @@ scale_factor_to_wine_dpi() {
 flatpak_wine() {
     local command_name="$1"
     local wine_debug="${WINEDEBUG_VALUE:--all}"
+    local -a instance_options=()
     local -a prefix_mount=()
     local -a test_environment=()
     shift
@@ -173,11 +185,23 @@ flatpak_wine() {
     if [[ -n "${PORTAL_SMOKE_TIMEOUT_MS:-}" ]]; then
         test_environment+=(--env="PORTAL_SMOKE_TIMEOUT_MS=${PORTAL_SMOKE_TIMEOUT_MS}")
     fi
+    if [[ -n "${WINE_FORCE_PORTAL:-}" ]]; then
+        test_environment+=(--env="WINE_FORCE_PORTAL=${WINE_FORCE_PORTAL}")
+    fi
+    if [[ -n "${FLATPAK_INSTANCE_ID_FD:-}" ]]; then
+        if [[ ! "${FLATPAK_INSTANCE_ID_FD}" =~ ^[0-9]+$ ]]; then
+            printf '无效的 Flatpak instance-id 文件描述符：%s\n' \
+                "${FLATPAK_INSTANCE_ID_FD}" >&2
+            return 64
+        fi
+        instance_options+=(--instance-id-fd="${FLATPAK_INSTANCE_ID_FD}")
+    fi
 
     flatpak run \
         --user \
         --branch="${ACTIVE_FLATPAK_BRANCH}" \
         --arch=x86_64 \
+        "${instance_options[@]}" \
         --nosocket=wayland \
         --filesystem="${CACHE_DIR}:ro" \
         "${prefix_mount[@]}" \

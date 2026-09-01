@@ -43,11 +43,13 @@ if ! flatpak remotes --user --columns=name | grep -Fxq "${FLATPAK_REMOTE}"; then
 fi
 flatpak remote-modify --user --url="${FLATPAK_REMOTE_URL}" "${FLATPAK_REMOTE}"
 
-if ! flatpak info --user "${FLATPAK_REF}" >/dev/null 2>&1; then
-    flatpak install --user --noninteractive -y --no-deps --no-related \
-        "${FLATPAK_REMOTE}" "${FLATPAK_REF}"
+if [[ "${ACTIVE_FLATPAK_APP}" != "${PORTAL_FLATPAK_APP}" ]]; then
+    if ! flatpak info --user "${FLATPAK_REF}" >/dev/null 2>&1; then
+        flatpak install --user --noninteractive -y --no-deps --no-related \
+            "${FLATPAK_REMOTE}" "${FLATPAK_REF}"
+    fi
+    flatpak info --user "${FLATPAK_REF}"
 fi
-flatpak info --user "${FLATPAK_REF}"
 
 for extension_ref in "${FLATPAK_GECKO_REF}" "${FLATPAK_MONO_REF}"; do
     if ! flatpak info --user "${extension_ref}" >/dev/null 2>&1; then

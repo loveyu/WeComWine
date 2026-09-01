@@ -1,0 +1,131 @@
+From d1ae95832a25598bd6ea3cbb042eb4b50d8a3aaf Mon Sep 17 00:00:00 2001
+From: loveyu <i@loveyu.info>
+Date: Tue, 1 Sep 2026 14:02:00 +0800
+Subject: [PATCH] riched20: Persist static pictures in callback storage
+
+IRichEditOleCallback::GetNewStorage supplies the structured storage for an
+object pasted from the clipboard.  The static image path left REOBJECT.pstg
+NULL and never persisted the presentation there.  Applications which validate
+the storage in QueryInsertObject consequently reject otherwise valid images.
+
+Request storage from the host callback, initialize it through IPersistStorage,
+save the cached picture presentation, and pass that storage to InsertObject.
+Keep the old storage-less fallback when a callback does not implement
+GetNewStorage.
+---
+ dlls/riched20/caret.c  |  3 +++
+ dlls/riched20/editor.c | 53 ++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 51 insertions(+), 5 deletions(-)
+
+diff --git a/dlls/riched20/caret.c b/dlls/riched20/caret.c
+index e196860068e..259be526b22 100644
+--- a/dlls/riched20/caret.c
++++ b/dlls/riched20/caret.c
+@@ -472,7 +472,10 @@ HRESULT editor_insert_oleobj(ME_TextEditor *editor, const REOBJECT *reo)
+ 
+   if (editor->lpOleCallback)
+   {
++    TRACE("QueryInsertObject clsid %s storage %p position %ld\n",
++          debugstr_guid(&reo->clsid), reo->pstg, (LONG)REO_CP_SELECTION);
+     hr = IRichEditOleCallback_QueryInsertObject(editor->lpOleCallback, (LPCLSID)&reo->clsid, reo->pstg, REO_CP_SELECTION);
++    TRACE("QueryInsertObject returned %#lx\n", hr);
+     if (hr != S_OK)
+       return hr;
+   }
+diff --git a/dlls/riched20/editor.c b/dlls/riched20/editor.c
+index b29f361069e..35667c1675a 100644
+--- a/dlls/riched20/editor.c
++++ b/dlls/riched20/editor.c
+@@ -1119,11 +1119,14 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+   LPOLECLIENTSITE     lpClientSite = NULL;
+   LPDATAOBJECT        lpDataObject = NULL;
+   LPOLECACHE          lpOleCache = NULL;
++  LPPERSISTSTORAGE    lpPersistStorage = NULL;
+   STGMEDIUM           stgm;
+   FORMATETC           fm;
+   CLSID               clsid;
+   const CLSID        *picture_clsid;
++  LPOLESTR            user_type = NULL;
+   HRESULT             hr = E_FAIL;
++  HRESULT             storage_hr;
+   DWORD               conn;
+ 
+   if (hemf)
+@@ -1147,17 +1150,53 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+   fm.lindex = -1;
+   fm.tymed = stgm.tymed;
+ 
+-  if (OleCreateDefaultHandler(picture_clsid, NULL, &IID_IOleObject, (void**)&lpObject) == S_OK &&
++  if (editor->lpOleCallback)
++  {
++    storage_hr = IRichEditOleCallback_GetNewStorage(editor->lpOleCallback, &lpStorage);
++    TRACE("GetNewStorage returned %#lx storage %p\n", storage_hr, lpStorage);
++    if (FAILED(storage_hr)) lpStorage = NULL;
++  }
++
++  if (OleCreateDefaultHandler(picture_clsid, NULL, &IID_IOleObject, (void**)&lpObject) == S_OK &&
+       IRichEditOle_GetClientSite(editor->richole, &lpClientSite) == S_OK &&
+       IOleObject_SetClientSite(lpObject, lpClientSite) == S_OK &&
+       IOleObject_GetUserClassID(lpObject, &clsid) == S_OK &&
+-      IOleObject_QueryInterface(lpObject, &IID_IOleCache, (void**)&lpOleCache) == S_OK &&
+-      SUCCEEDED(IOleCache_Cache(lpOleCache, &fm, 0, &conn)) &&
+-      IOleObject_QueryInterface(lpObject, &IID_IDataObject, (void**)&lpDataObject) == S_OK &&
+-      IDataObject_SetData(lpDataObject, &fm, &stgm, TRUE) == S_OK)
++      IOleObject_QueryInterface(lpObject, &IID_IOleCache, (void**)&lpOleCache) == S_OK)
+   {
+     REOBJECT            reobject;
+ 
++    if (lpStorage)
++    {
++      hr = IOleObject_QueryInterface(lpObject, &IID_IPersistStorage,
++                                     (void **)&lpPersistStorage);
++      if (FAILED(hr)) goto done;
++      hr = WriteClassStg(lpStorage, &clsid);
++      if (FAILED(hr)) goto done;
++      hr = IPersistStorage_InitNew(lpPersistStorage, lpStorage);
++      if (FAILED(hr)) goto done;
++    }
++
++    hr = IOleCache_Cache(lpOleCache, &fm, 0, &conn);
++    if (FAILED(hr)) goto done;
++    hr = IOleObject_QueryInterface(lpObject, &IID_IDataObject, (void**)&lpDataObject);
++    if (FAILED(hr)) goto done;
++    hr = IDataObject_SetData(lpDataObject, &fm, &stgm, TRUE);
++    if (FAILED(hr)) goto done;
++
++    if (lpStorage)
++    {
++      if (FAILED(IOleObject_GetUserType(lpObject, USERCLASSTYPE_FULL, &user_type)))
++        user_type = NULL;
++      hr = WriteFmtUserTypeStg(lpStorage, fm.cfFormat, user_type);
++      CoTaskMemFree(user_type);
++      user_type = NULL;
++      if (FAILED(hr)) goto done;
++      hr = IPersistStorage_Save(lpPersistStorage, lpStorage, TRUE);
++      if (FAILED(hr)) goto done;
++      hr = IPersistStorage_SaveCompleted(lpPersistStorage, NULL);
++      if (FAILED(hr)) goto done;
++    }
++
+     reobject.cbStruct = sizeof(reobject);
+     reobject.cp = REO_CP_SELECTION;
+     reobject.clsid = clsid;
+@@ -1171,12 +1210,16 @@ static HRESULT insert_static_object(ME_TextEditor *editor, HENHMETAFILE hemf, HB
+ 
+     hr = editor_insert_oleobj(editor, &reobject);
+   }
+ 
++done:
++  TRACE("static picture insertion returned %#lx storage %p\n", hr, lpStorage);
+   if (lpObject)       IOleObject_Release(lpObject);
+   if (lpClientSite)   IOleClientSite_Release(lpClientSite);
+   if (lpStorage)      IStorage_Release(lpStorage);
+   if (lpDataObject)   IDataObject_Release(lpDataObject);
+   if (lpOleCache)     IOleCache_Release(lpOleCache);
++  if (lpPersistStorage) IPersistStorage_Release(lpPersistStorage);
++  CoTaskMemFree(user_type);
+ 
+   return hr;
+ }
+-- 
+2.51.0

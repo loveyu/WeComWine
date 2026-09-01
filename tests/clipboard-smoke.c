@@ -50,10 +50,11 @@ int wmain(void)
         return 1;
     }
 
-    wprintf(L"image-availability bitmap=%d dib=%d dibv5=%d tiff=%d hdrop=%d\n",
+    wprintf(L"image-availability bitmap=%d dib=%d dibv5=%d enhmetafile=%d tiff=%d hdrop=%d\n",
             IsClipboardFormatAvailable(CF_BITMAP),
             IsClipboardFormatAvailable(CF_DIB),
             IsClipboardFormatAvailable(CF_DIBV5),
+            IsClipboardFormatAvailable(CF_ENHMETAFILE),
             IsClipboardFormatAvailable(CF_TIFF),
             IsClipboardFormatAvailable(CF_HDROP));
     wprintf(L"registered-png id=%u available=%d\n", png_format,
@@ -83,6 +84,18 @@ int wmain(void)
                     metadata.bmBitsPixel, metadata.bmWidthBytes);
         else
             wprintf(L"bitmap-metadata=unavailable error=%lu\n", GetLastError());
+    }
+
+    {
+        HENHMETAFILE metafile = (HENHMETAFILE)GetClipboardData(CF_ENHMETAFILE);
+        ENHMETAHEADER header = {0};
+        if (metafile && GetEnhMetaFileHeader(metafile, sizeof(header), &header) == sizeof(header))
+            wprintf(L"enhmetafile bytes=%lu records=%lu frame=%ldx%ld\n",
+                    header.nBytes, header.nRecords,
+                    header.rclFrame.right - header.rclFrame.left,
+                    header.rclFrame.bottom - header.rclFrame.top);
+        else
+            wprintf(L"enhmetafile-metadata=unavailable error=%lu\n", GetLastError());
     }
 
     SetLastError(ERROR_SUCCESS);
@@ -121,14 +134,18 @@ int wmain(void)
         IDataObject *object = NULL;
         FORMATETC format_dib = {CF_DIB, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
         FORMATETC format_bitmap = {CF_BITMAP, NULL, DVASPECT_CONTENT, -1, TYMED_GDI};
+        FORMATETC format_enhmetafile = {
+            CF_ENHMETAFILE, NULL, DVASPECT_CONTENT, -1, TYMED_ENHMF
+        };
 
         hr = OleGetClipboard(&object);
         wprintf(L"ole-get-clipboard=0x%08lx\n", (unsigned long)hr);
         if (SUCCEEDED(hr) && object)
         {
-            wprintf(L"ole-query dib=0x%08lx bitmap=0x%08lx\n",
+            wprintf(L"ole-query dib=0x%08lx bitmap=0x%08lx enhmetafile=0x%08lx\n",
                     (unsigned long)IDataObject_QueryGetData(object, &format_dib),
-                    (unsigned long)IDataObject_QueryGetData(object, &format_bitmap));
+                    (unsigned long)IDataObject_QueryGetData(object, &format_bitmap),
+                    (unsigned long)IDataObject_QueryGetData(object, &format_enhmetafile));
             IDataObject_Release(object);
         }
         OleUninitialize();

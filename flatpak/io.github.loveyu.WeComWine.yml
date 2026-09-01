@@ -1,7 +1,7 @@
 # 依赖和补丁来源记录。此文件不直接用于当前产物构建：企业微信需要传统
 # WoW64 的 64/32 位配对编译以及以 org.winehq.Wine 为 base 的扩展元数据。
 # 已在目标机验证的权威重建入口是 ../scripts/build-portal-wine.sh。
-id: io.github.huzhiyu.WeComWine
+id: io.github.loveyu.WeComWine
 default-branch: stable-25.08
 sdk: org.freedesktop.Sdk
 runtime: org.freedesktop.Platform

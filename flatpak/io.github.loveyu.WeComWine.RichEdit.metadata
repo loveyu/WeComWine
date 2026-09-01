@@ -1,0 +1,5 @@
+[Runtime]
+name=io.github.loveyu.WeComWine.RichEdit
+
+[ExtensionOf]
+ref=app/io.github.loveyu.WeComWine/x86_64/stable-25.08
