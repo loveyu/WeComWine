@@ -11,7 +11,7 @@ SYSTEMD_USER_DIR="${XDG_CONFIG_HOME}/systemd/user"
 
 install -d "${INSTALL_ROOT}" "${SYSTEMD_USER_DIR}"
 
-for directory in desktop flatpak patches scripts tests; do
+for directory in desktop flatpak icons patches scripts tests; do
     cp -a "${SOURCE_ROOT}/${directory}" "${INSTALL_ROOT}/"
 done
 

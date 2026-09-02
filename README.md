@@ -54,6 +54,7 @@ Portal 文件入口、外部浏览器和内置 CEF 网页已完成当前 Wine 11
 | `flatpak/` | Flatpak 依赖与补丁来源记录 |
 | `systemd/` | 用户级无人值守单元 |
 | `desktop/` | KDE/桌面环境启动入口 |
+| `icons/` | 企业微信桌面图标 |
 | `PACKAGING.md` | 独立包拆分、发布阻塞项和安全边界 |
 | `THIRD_PARTY.md` | 第三方来源、摘要和再分发边界 |
 
