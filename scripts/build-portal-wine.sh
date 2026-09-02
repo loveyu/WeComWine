@@ -79,7 +79,21 @@ if [[ ! -f "${SOURCE_DIR}/.portal-patched" ]]; then
     mkdir -p "${prepare_dir}" "${BUILD_ROOT}"
     tar --extract --xz --file="${SOURCE_ARCHIVE}" --strip-components=1 --directory="${prepare_dir}"
     for patch_file in "${PATCH_DIR}"/*.patch; do
-        patch --directory="${prepare_dir}" --strip=1 --forward --batch < "${patch_file}"
+        if patch --directory="${prepare_dir}" --strip=1 --forward --batch \
+            --dry-run < "${patch_file}" >/dev/null 2>&1; then
+            patch --directory="${prepare_dir}" --strip=1 --forward --batch \
+                < "${patch_file}"
+        elif patch --directory="${prepare_dir}" --strip=1 --reverse --batch \
+            --dry-run < "${patch_file}" >/dev/null 2>&1; then
+            printf 'skip patch already present upstream: %s\n' \
+                "${patch_file##*/}"
+        else
+            printf 'patch conflicts with Wine %s: %s\n' \
+                "${PORTAL_WINE_VERSION}" "${patch_file##*/}" >&2
+            patch --directory="${prepare_dir}" --strip=1 --forward --batch \
+                --dry-run < "${patch_file}" || true
+            exit 1
+        fi
     done
     printf '%s\n' "${PORTAL_PATCHSET}" > "${prepare_dir}/.portal-patched"
     mv "${prepare_dir}" "${SOURCE_DIR}"

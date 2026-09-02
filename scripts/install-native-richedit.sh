@@ -42,3 +42,4 @@ write_status "${STATUS_FILE}" "installed" \
     "path=${NATIVE_RICHEDIT_DLL_HOST},sha256=${actual_sha256}"
 printf '已安装用户自备 RichEdit：%s\n' "${NATIVE_RICHEDIT_DLL_HOST}"
 printf 'SHA-256：%s\n' "${actual_sha256}"
+printf '下次启动将默认使用该 RichEdit；可设置 WECOM_NATIVE_RICHEDIT=0 临时回退到 Wine 内置实现。\n'

@@ -7,9 +7,22 @@ source "${SCRIPT_DIR}/common.sh"
 
 STATUS_FILE="${STATE_DIR}/native-richedit.status"
 require_native="${WECOM_REQUIRE_NATIVE_RICHEDIT:-0}"
+native_enabled="${WECOM_NATIVE_RICHEDIT:-1}"
 
-if [[ "${WECOM_NATIVE_RICHEDIT:-1}" == "0" ]]; then
-    write_status "${STATUS_FILE}" "disabled" "WECOM_NATIVE_RICHEDIT=0"
+if ! "${SCRIPT_DIR}/patch-wecom-cef.sh"; then
+    printf 'CEF 兼容补丁执行失败，将保留当前程序文件继续启动。\n' >&2
+fi
+
+if [[ "${native_enabled}" != "0" && "${native_enabled}" != "1" ]]; then
+    write_status "${STATUS_FILE}" "invalid-setting" \
+        "WECOM_NATIVE_RICHEDIT=${native_enabled}"
+    printf 'WECOM_NATIVE_RICHEDIT 只允许 0 或 1，当前值：%s\n' \
+        "${native_enabled}" >&2
+    exit 64
+fi
+
+if [[ "${native_enabled}" == "0" ]]; then
+    "${SCRIPT_DIR}/use-builtin-richedit.sh" "WECOM_NATIVE_RICHEDIT=0"
     exec "${SCRIPT_DIR}/run-wecom.sh"
 fi
 
@@ -27,6 +40,7 @@ if [[ ! -f "${NATIVE_RICHEDIT_DLL_HOST}" ]]; then
     if [[ "${require_native}" == "1" ]]; then
         exit 78
     fi
+    "${SCRIPT_DIR}/use-builtin-richedit.sh" "native-missing"
     exec "${SCRIPT_DIR}/run-wecom.sh"
 fi
 
@@ -39,6 +53,7 @@ if [[ "${actual_sha256}" != "${NATIVE_RICHEDIT_SHA256}" ]]; then
     if [[ "${require_native}" == "1" ]]; then
         exit 78
     fi
+    "${SCRIPT_DIR}/use-builtin-richedit.sh" "native-invalid"
     exec "${SCRIPT_DIR}/run-wecom.sh"
 fi
 

@@ -2,19 +2,28 @@
 
 ## Wine
 
-- 版本：Wine 11.0
-- 源码地址：`https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz`
-- SHA-256：`c07a6857933c1fc60dff5448d79f39c92481c1e9db5aa628db9d0358446e0701`
+- 版本：Wine 11.16
+- 源码地址：`https://dl.winehq.org/wine/source/11.x/wine-11.16.tar.xz`
+- SHA-256：`c66e2090343dcd727f7f7fd2f87ee0bfb0b118790c1d745ab7b8a4c3a4197f2f`
 - 本项目的 `patches/wine-portal/` 来源于 Wine MR10060 草案及配套修正。
 - Wine 和派生二进制必须按照 Wine/LGPL 的适用条款提供许可证与对应源码。
 
 ## 企业微信
 
-- 验证版本：5.0.10.6015
+- 验证版本：5.0.10.6015、5.0.10.6025
 - 官方下载地址由 `scripts/common.sh` 记录。
 - 安装包 SHA-256：`d46b1cc2603c70ff9cccd85998eed0c0d61f11a3a68e050b0695111294c10c87`
 - 企业微信是腾讯的专有软件。本项目不保存、不提交、不公开再分发其安装包或
   Wine 前缀；目标机器自行下载并在安装前校验摘要。
+
+## Chromium Embedded Framework
+
+- 企业微信 5.0.10.6025 自带腾讯私有 CEF 107 构建。本项目只发布本地特征校验
+  和兼容修补脚本，不保存、提交或公开再分发企业微信的 `libcef.dll`、PDB、资源
+  文件或修改副本。
+- 上游官方 CEF 使用 BSD 风格许可证，官方二进制发行包允许在满足其许可证、
+  Chromium 第三方许可证和通知文件要求后再分发；该授权不能自动延伸到腾讯的
+  私有构建及修改。
 
 ## 字体与运行时
 

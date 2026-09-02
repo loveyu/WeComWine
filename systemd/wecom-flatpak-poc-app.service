@@ -3,11 +3,8 @@ Description=Run WeCom in Wine Flatpak
 Requires=wecom-flatpak-poc-bootstrap.service
 After=wecom-flatpak-poc-bootstrap.service graphical-session.target
 PartOf=wecom-flatpak-poc.target
-StartLimitIntervalSec=0
 
 [Service]
 Type=simple
 ExecStart=%h/.local/share/wecom-wine-flatpak/scripts/run-wecom-entrypoint.sh
-Restart=always
-RestartSec=20s
 TimeoutStopSec=30s

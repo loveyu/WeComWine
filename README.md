@@ -4,12 +4,17 @@
 Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立包的源码项目，
 不包含企业微信安装包、Wine 前缀、用户数据或构建缓存。
 
-参考部署已在 Debian 13、KDE Plasma 6 Wayland/XWayland、Fcitx5、Wine 11.0 和
-企业微信 5.0.10.6015 上验证。
+现有部署已在 Debian 13、KDE Plasma 6 Wayland/XWayland、Fcitx5 和 Wine 11.0
+环境验证；企业微信首次安装基线为 5.0.10.6015，当前已验证内置升级到
+5.0.10.6025。正式 Wine 前缀保持可写，允许企业微信继续安装组件并通过内置
+更新器升级到新版本。
+仓库构建目标已跟进 Wine 11.16，完整 runner 构建和登录态回归仍单独记录。
 
 ## 已验证能力
 
-- Wine 11.0 传统 WoW64，支持企业微信 32 位主程序和 64 位辅助组件。
+- Wine 11.16 传统 WoW64 构建配置，支持企业微信 32 位主程序和 64 位辅助组件；
+  现有 16 个补丁已完成源码应用检查，构建时跳过已被上游合入的提交，真实冲突
+  仍会使构建失败。
 - Wine MR10060 Portal 补丁：兼容的打开、保存和目录对话框交给
   `xdg-desktop-portal-kde`。企业微信启动入口默认强制使用 Portal，即使应用注册
   Win32 hook/事件监听器也不回退 Wine 选择器；其他测试程序仍保留兼容的自动
@@ -18,24 +23,26 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
   `IFileDialog` 初始化崩溃；宿主文件仍按文件选择结果通过文档 Portal 授权。
 - 回移 Wine 11.3 的 X11 剪贴板格式注册修复，并补齐 RichEdit 静态图片 OLE
   存储路径；32 位自动探针已覆盖 `CF_DIB`、`CF_DIBV5`、`CF_BITMAP` 和
-  `CF_ENHMETAFILE`。用户自备的 Win2k 原生 RichEdit 已通过真实输入框外部图片
-  粘贴、预览和发送验收，发送当时未崩溃；约 13 分钟后出现一次既有特征的
-  `BackgroundThread` 栈溢出，仍在独立排查长期稳定性。
+  `CF_ENHMETAFILE`。已安装且校验通过时，默认使用用户自备的 Win2k 原生
+  RichEdit 以保留图片粘贴能力；组件缺失或无效时自动回退 Wine 内置实现。
+- KDE Wayland 下通过 CopyQ 观测新图片，将 `image/png` 私密临时转换为
+  X11 `image/bmp`，使 Wine 可继续合成 `CF_DIB` 和 `CF_ENHMETAFILE`；
+  文本剪贴板不受影响。
 - Fcitx5/XIM 预编辑、候选和中文上屏；候选框模式为 `overthespot`。
 - 只读复用宿主 Noto Sans CJK SC，不复制或安装大型字体包。
 - 每次启动读取 KDE/X11 的 `Xft.dpi` 并设置 Wine `LogPixels`，跟随系统缩放。
-- 仅对企业微信自绘、无焦点的透明阴影窗设为不可见，覆盖登录窗、强制系统边框
-  后的非对称主窗口及右键菜单 transient 阴影，不修改 KDE 全局阴影。抑制器按
-  窗口列表事件快速处理，并保留低频兜底；每个 XID 只写一次 opacity。
-- 通过只匹配 `wxwork.exe` 且标题为“企业微信”的 KWin 强制规则启用系统边框，
-  避免企业微信恢复无边框后只能拖动一次。
-- 用户级 systemd 自动启动、失败重试、异常重启和官方 Wine runner 回滚。
+- 窗口阴影抑制器默认关闭，避免外部写入窗口 opacity 属性干扰企业微信窗口和
+  图片聊天重绘；仅保留显式诊断开关，不修改 KDE 全局阴影。
+- 不安装企业微信专用 KWin 窗口规则，边框和窗口层级完全交由企业微信与 KWin
+  正常协商，避免强制边框残留导致窗口持续位于最顶层。
+- 用户级 systemd 启动管理和官方 Wine runner 回滚；企业微信退出后保持停止。
 - 默认给企业微信内置 Chromium 禁用 GPU 加速，避免 ANGLE 无法创建设备时持续
   重启 GPU 子进程并最终触发栈溢出；每次启动记录并只清理自己的 Flatpak 实例。
 - Flatpak 默认不开放整个 home、host、摄像头、系统总线和容器 socket。
 
-摄像头和屏幕共享不在范围内。扫码后的企业微信自绘输入框、文件入口、托盘、
-内置网页等仍需真实账号验收。
+摄像头和屏幕共享不在范围内。企业微信 5.0.10.6025 的真实输入框图片粘贴、
+Portal 文件入口、外部浏览器和内置 CEF 网页已完成当前 Wine 11.0 runner 验收；
+托盘及 Wine 11.16 新 runner 仍需回归。
 
 ## 仓库结构
 
@@ -125,13 +132,21 @@ systemctl --user start wecom-flatpak-poc.target
 journalctl --user -u wecom-flatpak-poc-app.service -f
 ```
 
-企业微信内选择“退出”后会被 `Restart=always` 拉起；需要保持退出时，先停止
-target。
+企业微信内选择“退出”后服务保持停止，不会由 systemd 自动拉起；需要再次运行时，
+启动 `wecom-flatpak-poc.target`。
 
-默认启用企业微信窗口阴影抑制。临时回退时给运行服务设置
-`WECOM_DISABLE_WINDOW_SHADOW=0`；该功能依赖宿主已有的 `xprop`、`xwininfo` 和
+正式前缀允许企业微信内置更新和组件安装。检测到内置更新包时，启动入口会在主
+进程退出后继续等待更新器完成（最长 15 分钟），再清理本次 Flatpak 实例。
+
+默认关闭企业微信窗口阴影抑制。仅在诊断阴影窗口时给运行服务设置
+`WECOM_DISABLE_WINDOW_SHADOW=1`；该功能依赖宿主已有的 `xprop`、`xwininfo` 和
 coreutils `stdbuf`，缺失时只记录提示，不影响企业微信启动。候选窗口先由 X11
 窗口树按应用、空标题和尺寸预筛，避免常态轮询整个桌面。
+
+默认启用图片剪贴板桥接，仅读取 CopyQ 当前剪贴板的 `image/png`，转换用的
+临时文件权限为当前用户私有并在每轮后删除。宿主缺少 `copyq`、`magick`
+或 `xclip` 时自动降级，不阻止企业微信启动。设置
+`WECOM_IMAGE_CLIPBOARD_BRIDGE=0` 可显式关闭。
 
 缩放检测优先使用 `Xft.dpi / 96`，其次使用 KScreen 输出倍率，无法读取时回退
 到 100%。可用 `WECOM_SCALE_FACTOR=1.5` 显式覆盖；允许范围为 0.5～4。
@@ -142,6 +157,15 @@ Wine DPI 写入和企业微信启动位于同一个 Flatpak/wineserver 生命周
 新版 Wine 图形栈时，可给运行服务设置 `WECOM_DISABLE_GPU=0` 临时恢复 GPU
 路径。异常退出后的清理由 Flatpak instance ID 精确定位，不会终止使用同一
 应用 ID 的构建或冒烟测试实例。
+
+启动入口会检查当前企业微信版本的 `compatible_web/libcef.dll`。CEF 107 在
+Wine 映像映射上可能得到 `PAGE_WRITECOPY`，却强制断言旧保护属性必须为
+`PAGE_READWRITE`，导致 renderer 以 `EXCEPTION_BREAKPOINT` 在
+`libcef.dll+0x16a59ac` 退出。兼容脚本按完整指令结构唯一匹配，只跳过这个旧
+保护属性断言，并在修改前按原文件摘要生成备份；`VirtualProtect` 失败分支和
+CEF 沙箱保持不变。企业微信升级不受版本或摘要上限约束：未知指令布局只记录
+`cef-compat.status` 并安全跳过，不会阻止新版本启动。可设置
+`WECOM_CEF_COMPAT_PATCH=0` 禁用该兼容处理。
 
 企业微信默认设置 `WECOM_FORCE_PORTAL=1`，将兼容的 Win32 文件打开、保存和
 目录选择请求强制交给 `xdg-desktop-portal`；KDE 会由
@@ -157,40 +181,34 @@ Document Portal 只向本 Flatpak 应用授权所选对象，没有开放整个�
 `IShellItemArray` 交给应用。已登录真实入口完成文本文件选择并进入发送流程，
 服务未重启；保存和纯目录模式继续由自动 Portal 探针覆盖。
 
-原生 RichEdit 运行入口把 DLL 和注册表覆盖限制在临时 Overlay，同时把
-`drive_c/users` 实时绑定到正式前缀，避免企业微信刷新登录令牌后正式实例只剩
-旧令牌。Win2k `riched20.dll` 单 DLL 已确认可被企业微信加载并完成启动，但会
+可选原生 RichEdit 运行入口把 DLL 和注册表覆盖持久写入正式前缀；整个前缀保持可写，
+企业微信内置更新器和组件安装器对 `Program Files`、注册表及用户目录的修改均会
+保留。Win2k `riched20.dll` 单 DLL 已确认可被企业微信加载并完成启动，但会
 增加约 14 秒冷启动时间；微软 DLL 只允许从用户持有的合法介质提取，不进入
 仓库或发行包。配置用户自备 DLL：
 
 ```bash
 ~/.local/share/wecom-wine-flatpak/scripts/install-native-richedit.sh \
   /path/to/riched20.dll
-systemctl --user restart wecom-flatpak-poc-app.service
 ```
 
-安装器只接受已验证的 Win2k 32 位 DLL 摘要。组件缺失或摘要不符时默认安全
-回退 Wine 内置 RichEdit，并在 `native-richedit.status` 中记录原因；设置
-`WECOM_REQUIRE_NATIVE_RICHEDIT=1` 可改为拒绝降级启动，设置
-`WECOM_NATIVE_RICHEDIT=0` 可显式禁用原生组件。
+安装器只接受已验证的 Win2k 32 位 DLL 摘要。有效组件默认启用，并在
+`native-richedit.status` 中记录状态；设置 `WECOM_NATIVE_RICHEDIT=0`
+可临时恢复 Wine 内置 RichEdit，设置 `WECOM_REQUIRE_NATIVE_RICHEDIT=1`
+可在原生组件缺失或非法时拒绝降级启动。
 
-真实发送后的新转储为 `0xc00000fd`，崩溃线程名 `BackgroundThread`。其异常
-地址和寄存器模板与启用原生 RichEdit 前 14:31 的转储一致，因此现有证据不支持
-将其归因于原生 DLL。两次转储生成时阴影抑制器都写入了同一类 X11 opacity
+企业微信 5.0.10.6025 在原生 RichEdit 启用时产生的三次新转储均为
+`0xc00000fd`，异常入口固定在 Wine `ntdll.dll+0x44c2c`；可恢复栈主要属于
+`WXWork.exe`、`client_extension.dll` 和 Wine 系统模块，没有直接捕获到
+`riched20.dll` 栈帧。切换到 Wine 内置 RichEdit 后，相同含图片聊天仍产生同样
+异常的第四次转储，因此可排除“必须加载原生 RichEdit 才会崩溃”，但尚不能排除
+RichEdit 调用路径或企业微信自身的布局递归。此前两次转储生成时
+阴影抑制器都写入了同一类 X11 opacity
 属性；脚本现已改为每个 XID 生命周期只写一次，避免与企业微信周期性移除属性
 形成 PropertyNotify 争抢。暂停阴影抑制器后，群公告、内置网页、企业微信文档
-和邮件路径均未复现崩溃；根因仍未查明，按当前安排暂缓排查，后续仅在再次出现
-同类崩溃时结合新转储和当时操作继续定位。
-
-KWin 规则只影响标题精确为“企业微信”的窗口，空标题阴影窗不会命中。卸载或
-临时回退系统边框时执行：
-
-```bash
-~/.local/share/wecom-wine-flatpak/scripts/install-kwin-rule.sh remove
-```
-
-首次安装前的 `kwinrulesrc` 会备份到项目状态目录；安装时可用
-`WECOM_SKIP_KWIN_RULE=1 make install-user` 跳过该集成。
+和邮件路径均未复现这类主进程栈溢出；该问题的根因仍未查明，且与已经确认并
+修复的 CEF renderer `EXCEPTION_BREAKPOINT` 是两个独立故障。后续仅在主进程
+再次出现 `0xc00000fd` 时结合新转储和当时操作继续定位。
 
 ## 构建定制 runner
 

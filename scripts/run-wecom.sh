@@ -49,6 +49,7 @@ printf '%s starting %s scale=%s dpi=%s force-portal=%s\n' \
 
 runner_pid=''
 shadow_suppressor_pid=''
+image_clipboard_bridge_pid=''
 stop_requested=0
 wecom_runtime_args=()
 
@@ -67,6 +68,19 @@ stop_shadow_suppressor() {
         wait "${shadow_suppressor_pid}" 2>/dev/null || true
         shadow_suppressor_pid=''
     fi
+}
+
+stop_image_clipboard_bridge() {
+    if [[ -n "${image_clipboard_bridge_pid}" ]]; then
+        kill "${image_clipboard_bridge_pid}" 2>/dev/null || true
+        wait "${image_clipboard_bridge_pid}" 2>/dev/null || true
+        image_clipboard_bridge_pid=''
+    fi
+}
+
+stop_runtime_helpers() {
+    stop_shadow_suppressor
+    stop_image_clipboard_bridge
 }
 
 stop_flatpak_instance() {
@@ -89,11 +103,16 @@ stop_runner() {
 }
 
 trap stop_runner TERM INT
-trap stop_shadow_suppressor EXIT
+trap stop_runtime_helpers EXIT
 
-if [[ "${WECOM_DISABLE_WINDOW_SHADOW:-1}" != "0" ]]; then
+if [[ "${WECOM_DISABLE_WINDOW_SHADOW:-0}" != "0" ]]; then
     "${SCRIPT_DIR}/suppress-wecom-shadow.sh" 9>&- &
     shadow_suppressor_pid="$!"
+fi
+
+if [[ "${WECOM_IMAGE_CLIPBOARD_BRIDGE:-1}" != "0" ]]; then
+    "${SCRIPT_DIR}/bridge-wecom-image-clipboard.sh" 9>&- &
+    image_clipboard_bridge_pid="$!"
 fi
 
 set +e
@@ -103,8 +122,31 @@ printf '\n'
 : > "${INSTANCE_FILE}"
 exec 8> "${INSTANCE_FILE}"
 FLATPAK_INSTANCE_ID_FD=8 \
-    flatpak_wine_scaled "${wine_dpi}" wine "${program_windows}" \
-    "${wecom_runtime_args[@]}" 9>&- &
+    flatpak_wine_scaled "${wine_dpi}" sh -c '
+        has_update_package() {
+            find "${WINEPREFIX}/drive_c/users" -type f \
+                -path "*/AppData/Roaming/Tencent/WXWork/Update/Update.exe" \
+                -print -quit | grep -q .
+        }
+
+        update_pending=0
+        if has_update_package; then
+            update_pending=1
+        fi
+        wine "$@"
+        wine_status="$?"
+
+        # WeCom exits its main process before the in-prefix updater has
+        # finished.  Keep this Flatpak instance and wineserver alive long
+        # enough for that child installer to persist the new version.
+        if [ "${wine_status}" -eq 0 ] && \
+           { [ "${update_pending}" -eq 1 ] || has_update_package; }; then
+            printf "%s waiting for WeCom updater to finish\n" \
+                "$(date --iso-8601=seconds)"
+            timeout --foreground 15m wineserver -w || true
+        fi
+        exit "${wine_status}"
+    ' sh "${program_windows}" "${wecom_runtime_args[@]}" 9>&- &
 runner_pid="$!"
 exec 8>&-
 sleep 2
@@ -119,7 +161,7 @@ wine_exit_code="$?"
 # cannot retain the prefix or lock, while independent builds and smoke tests
 # using the same application ID remain untouched.
 stop_flatpak_instance
-stop_shadow_suppressor
+stop_runtime_helpers
 set -e
 
 write_status "${STATUS_FILE}" "exited" \

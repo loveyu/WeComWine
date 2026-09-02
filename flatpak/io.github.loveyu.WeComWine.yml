@@ -27,8 +27,8 @@ modules:
       - --disable-tests
     sources:
       - type: archive
-        url: https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz
-        sha256: c07a6857933c1fc60dff5448d79f39c92481c1e9db5aa628db9d0358446e0701
+        url: https://dl.winehq.org/wine/source/11.x/wine-11.16.tar.xz
+        sha256: c66e2090343dcd727f7f7fd2f87ee0bfb0b118790c1d745ab7b8a4c3a4197f2f
       - type: patch
         path: ../patches/wine-portal/0001-comdlg32-add-XDG-desktop-portal-backend-for-file-dia.patch
       - type: patch

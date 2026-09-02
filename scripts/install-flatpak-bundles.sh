@@ -23,8 +23,7 @@ if [[ -n "${richedit_bundle}" ]]; then
     flatpak install --user --noninteractive -y "${richedit_bundle}"
 fi
 
-WECOM_SKIP_KWIN_RULE="${WECOM_SKIP_KWIN_RULE:-0}" \
-    "${PROJECT_DIR}/scripts/install-user.sh"
+"${PROJECT_DIR}/scripts/install-user.sh"
 install -d "$(dirname -- "${RUNNER_STATE_FILE}")"
 printf '%s\n' "${PORTAL_FLATPAK_APP}" > "${RUNNER_STATE_FILE}"
 

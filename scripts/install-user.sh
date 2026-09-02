@@ -15,6 +15,11 @@ for directory in desktop flatpak patches scripts tests; do
     cp -a "${SOURCE_ROOT}/${directory}" "${INSTALL_ROOT}/"
 done
 
+# The former KWin rule forced system borders and could leave WeCom windows at
+# the topmost level.  Remove the stale installed helper during in-place
+# upgrades; the source tree no longer ships or invokes it.
+rm -f -- "${INSTALL_ROOT}/scripts/install-kwin-rule.sh"
+
 install -m 644 "${SOURCE_ROOT}/README.md" "${INSTALL_ROOT}/README.md"
 install -m 644 "${SOURCE_ROOT}/TODO.md" "${INSTALL_ROOT}/TODO.md"
 install -m 644 "${SOURCE_ROOT}/PACKAGING.md" "${INSTALL_ROOT}/PACKAGING.md"
