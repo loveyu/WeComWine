@@ -38,6 +38,7 @@
 *.tar.gz
 *.tar.xz
 *.zip
+*.7z
 *.status
 *.lock
 *.log

@@ -3,10 +3,27 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-source "${SCRIPT_DIR}/common.sh"
+if [[ "${WECOM_CEF_STANDALONE:-0}" == "1" ]]; then
+    : "${WECOM_CEF_ROOT:?独立模式必须设置 WECOM_CEF_ROOT}"
+    : "${WECOM_CEF_STATUS_FILE:?独立模式必须设置 WECOM_CEF_STATUS_FILE}"
+    STATUS_FILE="${WECOM_CEF_STATUS_FILE}"
+    wxwork_root="${WECOM_CEF_ROOT}"
+    write_status() {
+        local status_file="$1"
+        local stage="$2"
+        local detail="${3:-}"
 
-STATUS_FILE="${STATE_DIR}/cef-compat.status"
-wxwork_root="${WECOM_CEF_ROOT:-${WINEPREFIX_HOST}/drive_c/Program Files (x86)/WXWork}"
+        {
+            printf 'updated_at=%s\n' "$(date --iso-8601=seconds)"
+            printf 'stage=%s\n' "${stage}"
+            printf 'detail=%s\n' "${detail}"
+        } > "${status_file}"
+    }
+else
+    source "${SCRIPT_DIR}/common.sh"
+    STATUS_FILE="${STATE_DIR}/cef-compat.status"
+    wxwork_root="${WECOM_CEF_ROOT:-${WINEPREFIX_HOST}/drive_c/Program Files (x86)/WXWork}"
+fi
 enabled="${WECOM_CEF_COMPAT_PATCH:-1}"
 
 if [[ "${enabled}" != "0" && "${enabled}" != "1" ]]; then

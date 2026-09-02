@@ -6,7 +6,7 @@ DIST_DIR ?= dist
 SOURCE_DATE_EPOCH ?= 0
 ARCHIVE := $(DIST_DIR)/$(PROJECT)-$(VERSION).tar.gz
 
-.PHONY: all check install-user flatpak-bundles dist clean
+.PHONY: all check install-user flatpak-bundles deepin-flatpak-local dist clean
 
 all: check
 
@@ -16,7 +16,7 @@ check:
 	@python3 -c 'from pathlib import Path; path = Path("scripts/manage-wecom-window-icon.py"); compile(path.read_text(), str(path), "exec")'
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 16
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
-		git ls-files | grep -Eiq '\.(exe|msi|dll|bundle|flatpak)$$'; then \
+		git ls-files | grep -Eiq '\.(7z|deb|exe|msi|dll|bundle|flatpak)$$'; then \
 		echo '错误：仓库中不能包含安装包或二进制发行制品' >&2; exit 1; \
 	fi
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git diff --check; fi
@@ -26,6 +26,9 @@ install-user: check
 
 flatpak-bundles: check
 	@./scripts/package-flatpaks.sh
+
+deepin-flatpak-local: check
+	@./scripts/build-deepin-wine-flatpak.sh
 
 dist: check
 	@mkdir -p "$(DIST_DIR)"

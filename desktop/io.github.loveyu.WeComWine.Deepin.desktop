@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=企业微信（Deepin 官方包）
+Comment=使用 Deepin 官方兼容引擎和企业微信代码包
+Exec=wecom-deepin
+Icon=io.github.loveyu.WeComWine.Deepin
+Terminal=false
+Categories=Network;InstantMessaging;
+StartupWMClass=com.qq.weixin.work.deepin

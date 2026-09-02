@@ -9,6 +9,18 @@ STATUS_FILE="${STATE_DIR}/native-richedit.status"
 require_native="${WECOM_REQUIRE_NATIVE_RICHEDIT:-0}"
 native_enabled="${WECOM_NATIVE_RICHEDIT:-1}"
 
+# Deepin mode keeps its packaged RichEdit and does not sync the separate Win2k
+# extension.  Tencent 5.0.10 still needs the same narrowly matched CEF 107
+# protection-assertion compatibility patch as the standard runner.
+if [[ "${ACTIVE_FLATPAK_APP}" == "${DEEPIN_FLATPAK_APP}" ]]; then
+    if ! "${SCRIPT_DIR}/patch-wecom-cef.sh"; then
+        printf 'Deepin 模式 CEF 兼容补丁执行失败，将保留当前程序文件继续启动。\n' >&2
+    fi
+    write_status "${STATUS_FILE}" "deepin-official" \
+        "cef=compat,riched20=official,msftedit=official"
+    exec "${SCRIPT_DIR}/run-wecom.sh"
+fi
+
 if ! "${SCRIPT_DIR}/patch-wecom-cef.sh"; then
     printf 'CEF 兼容补丁执行失败，将保留当前程序文件继续启动。\n' >&2
 fi

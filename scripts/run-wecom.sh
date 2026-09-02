@@ -28,7 +28,15 @@ fi
 program_windows="$(<"${PROGRAM_FILE}")"
 scale_factor="$(detect_system_scale_factor)"
 wine_dpi="$(scale_factor_to_wine_dpi "${scale_factor}")"
-force_portal="${WECOM_FORCE_PORTAL:-1}"
+deepin_official_baseline=0
+if [[ "${ACTIVE_FLATPAK_APP}" == "${DEEPIN_FLATPAK_APP}" ]]; then
+    deepin_official_baseline=1
+fi
+force_portal_default=1
+if (( deepin_official_baseline == 1 )); then
+    force_portal_default=0
+fi
+force_portal="${WECOM_FORCE_PORTAL:-${force_portal_default}}"
 if [[ "${force_portal}" != "0" && "${force_portal}" != "1" ]]; then
     write_status "${STATUS_FILE}" "failed" \
         "invalid-WECOM_FORCE_PORTAL=${force_portal}"
@@ -60,7 +68,8 @@ wecom_runtime_args=()
 # restart storm has preceded reproducible stack-overflow crashes in the main
 # client.  Keep Chromium on its software compositing path by default; this can
 # be disabled temporarily when testing a newer Wine graphics stack.
-if [[ "${WECOM_DISABLE_GPU:-1}" != "0" ]]; then
+if (( deepin_official_baseline == 0 )) && \
+   [[ "${WECOM_DISABLE_GPU:-1}" != "0" ]]; then
     wecom_runtime_args+=(--disable-gpu)
 fi
 
@@ -125,7 +134,8 @@ stop_runner() {
 trap stop_runner TERM INT
 trap stop_runtime_helpers EXIT
 
-if [[ "${WECOM_DISABLE_WINDOW_SHADOW:-0}" != "0" ]]; then
+if (( deepin_official_baseline == 0 )) && \
+   [[ "${WECOM_DISABLE_WINDOW_SHADOW:-0}" != "0" ]]; then
     "${SCRIPT_DIR}/suppress-wecom-shadow.sh" 9>&- &
     shadow_suppressor_pid="$!"
 fi
@@ -135,12 +145,14 @@ if [[ "${WECOM_MANAGE_TITLEBAR_OVERLAY:-1}" != "0" ]]; then
     titlebar_overlay_manager_pid="$!"
 fi
 
-if [[ "${WECOM_MANAGE_WINDOW_ICON:-1}" != "0" ]]; then
+if (( deepin_official_baseline == 0 )) && \
+   [[ "${WECOM_MANAGE_WINDOW_ICON:-1}" != "0" ]]; then
     "${SCRIPT_DIR}/manage-wecom-window-icon.sh" 9>&- &
     window_icon_manager_pid="$!"
 fi
 
-if [[ "${WECOM_IMAGE_CLIPBOARD_BRIDGE:-1}" != "0" ]]; then
+if (( deepin_official_baseline == 0 )) && \
+   [[ "${WECOM_IMAGE_CLIPBOARD_BRIDGE:-1}" != "0" ]]; then
     "${SCRIPT_DIR}/bridge-wecom-image-clipboard.sh" 9>&- &
     image_clipboard_bridge_pid="$!"
 fi

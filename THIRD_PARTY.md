@@ -12,9 +12,15 @@
 
 - 验证版本：5.0.10.6015、5.0.10.6025
 - 官方下载地址由 `scripts/common.sh` 记录。
-- 安装包 SHA-256：`d46b1cc2603c70ff9cccd85998eed0c0d61f11a3a68e050b0695111294c10c87`
-- 企业微信是腾讯的专有软件。本项目不保存、不提交、不公开再分发其安装包或
-  Wine 前缀；目标机器自行下载并在安装前校验摘要。
+- 5.0.10.6015 安装包 SHA-256：
+  `d46b1cc2603c70ff9cccd85998eed0c0d61f11a3a68e050b0695111294c10c87`。
+- 腾讯 CDN 当前提供的 5.0.10.6025 安装包 SHA-256：
+  `f9b028420b84dda6888246516e8a1dddd3174eaeb3d8d930e8e04264a9cfa513`；
+  安装后 `WXWork.exe` SHA-256 为
+  `46fbd8d193e6c42aa9cac4b38cf857cd125127cb658129b7d166dee8f17d6db2`。
+- 企业微信是腾讯的专有软件。本项目源码和公开制品不保存、不提交、不再分发其
+  安装包或 Wine 前缀；目标机器自行下载并在安装前校验摘要。本机私有 Deepin
+  测试包可临时封装该安装包，但不得上传或再分发。
 - `icons/` 中的企业微信应用图标提取自已验证的官方客户端，仅用于标识该客户端；
   企业微信名称、图标及相关商标权利归腾讯所有。
 
@@ -29,9 +35,36 @@
 
 ## 字体与运行时
 
-- CJK 字体只读复用宿主 Noto Sans CJK，不复制到项目或发行包。
+- 标准 Runner 只读复用宿主 Noto Sans CJK；本地 Deepin 私有包则携带其适配包
+  明确依赖的文泉驿微米黑字体。
 - Freedesktop Platform、Wine Flatpak base、Mono、Gecko 和图形扩展由 Flatpak
   依赖解析获取；正式发布时需要同步生成完整的第三方许可证清单。
+
+## Deepin 官方兼容引擎（本地测试包）
+
+- 引擎包：`deepin-wine10-stable 10.14deepin11`，来源为 Deepin/统信官方应用
+  商店，SHA-256 为
+  `a3412982cfb16d8e20d29508779ac5ad8a3b389a41737eebb7f657a1b5b9cb0f`。
+- 企业微信适配包：`com.qq.weixin.work.deepin 5.0.0.6008deepin8`，同样来源于
+  官方应用商店，SHA-256 为
+  `e1ec28e988d5823287dd83ce4715072375314d81af2df5ca5c8ce8f84553010b`。
+- 中文字体包：Deepin 官方仓库中的
+  `fonts-wqy-microhei 0.2.0-beta-3.1`，SHA-256 为
+  `fc23a97e13c0ac783b96710e2ed8e28d8aa34392cc10f3725d0e020392fb0a8a`。
+  企业微信适配包明确依赖该字体；构建脚本将字体文件及版权说明装入本地
+  Flatpak，使官方前缀已有的宋体、微软雅黑字体替换规则能够生效。该字体采用
+  Apache-2.0 或带字体例外的 GPL-3+ 双重许可。
+- `scripts/build-deepin-wine-flatpak.sh` 只在用户本机下载、校验和封装上述内容；
+  本地包完整携带 Deepin 官方适配目录和 `files.7z`，并在该前缀内安装腾讯官方
+  企业微信 5.0.10.6025。仓库不保存 `.deb`、`.exe`、企业微信程序、适配 DLL 或
+  生成的 Flatpak。
+  由于企业微信适配包包含专有客户端发布内容，本地测试 Flatpak 不得进入公开
+  CI artifact 或公开发行附件。
+- 官方预制前缀另含 Microsoft 原生 `riched20.dll` 和 `msftedit.dll`，并配置
+  `native,builtin` 覆盖。本地 Deepin 测试包为复现官方兼容组合而从已校验的
+  官方包中提取它们；这些 Microsoft 二进制同样不得提交或公开再分发。
+- Deepin Wine 包附带的版权文件声明 Wine 代码采用 LGPL-2.1；公开再分发前仍需
+  单独核实 Deepin 修改的对应源码和企业微信专用适配文件的完整授权边界。
 
 ## Microsoft RichEdit A/B 组件
 
