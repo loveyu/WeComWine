@@ -54,7 +54,10 @@ Actions 入口为 `.github/workflows/package-flatpaks.yml`，全部公开制品�
 用户侧安装脚本只读取用户明确提供的本地路径。
 
 用户级集成包的阴影抑制功能依赖 `xprop`、`xwininfo` 和 coreutils `stdbuf`，
-不写入或维护 KWin 窗口规则。
+不写入或维护 KWin 窗口规则；安装升级时仅迁移并清理本项目旧版本遗留的
+`wecom-wine-system-frame` 规则。任务栏图标管理依赖宿主 `python3`、ImageMagick
+`magick` 和 X11 `libX11`，依赖缺失时安全降级；它仅规范化企业微信任务窗口的
+标准 X11 图标和 KDE 桌面文件关联。
 
 公开制品不包含腾讯安装包、企业微信私有 `libcef.dll` 或其修改副本。CEF
 兼容处理只分发指令特征校验与本地修补脚本，由用户从腾讯官方渠道安装或更新
@@ -67,7 +70,7 @@ Actions 入口为 `.github/workflows/package-flatpaks.yml`，全部公开制品�
 - [ ] 明确本项目自有脚本、测试和文档的许可证；第三方补丁继续遵守 Wine 许可。
 - [x] 增加自托管 CI 的传统 WoW64 构建、多 Flatpak 导出、摘要和 artifact 上传流程。
 - [ ] 将传统 WoW64 构建进一步转换为纯 flatpak-builder manifest。
-- [ ] 增加 AppStream metadata、正式图标、截图、版本和发行说明。
+- [ ] 增加 AppStream metadata、截图、版本和发行说明。
 - [ ] 使用独立 GPG key 签名 Flatpak OSTree 仓库或生成受信任的 single-file bundle。
 - [ ] 设计从 `wecom-flatpak-poc.*` 服务名和 XDG 数据目录迁移到正式名称的兼容策略。
 - [x] 正式前缀保持可写，允许企业微信内置更新器升级；已验证版本只作为回归记录，

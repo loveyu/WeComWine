@@ -19,6 +19,7 @@ done
 # the topmost level.  Remove the stale installed helper during in-place
 # upgrades; the source tree no longer ships or invokes it.
 rm -f -- "${INSTALL_ROOT}/scripts/install-kwin-rule.sh"
+"${INSTALL_ROOT}/scripts/remove-stale-kwin-rule.sh"
 
 install -m 644 "${SOURCE_ROOT}/README.md" "${INSTALL_ROOT}/README.md"
 install -m 644 "${SOURCE_ROOT}/TODO.md" "${INSTALL_ROOT}/TODO.md"

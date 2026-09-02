@@ -13,6 +13,7 @@ all: check
 check:
 	@bash -n scripts/*.sh
 	@bash -n scripts/install-release.sh.in
+	@python3 -c 'from pathlib import Path; path = Path("scripts/manage-wecom-window-icon.py"); compile(path.read_text(), str(path), "exec")'
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 16
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
 		git ls-files | grep -Eiq '\.(exe|msi|dll|bundle|flatpak)$$'; then \

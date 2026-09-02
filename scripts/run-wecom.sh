@@ -50,6 +50,7 @@ printf '%s starting %s scale=%s dpi=%s force-portal=%s\n' \
 runner_pid=''
 shadow_suppressor_pid=''
 titlebar_overlay_manager_pid=''
+window_icon_manager_pid=''
 image_clipboard_bridge_pid=''
 stop_requested=0
 wecom_runtime_args=()
@@ -79,6 +80,14 @@ stop_titlebar_overlay_manager() {
     fi
 }
 
+stop_window_icon_manager() {
+    if [[ -n "${window_icon_manager_pid}" ]]; then
+        kill "${window_icon_manager_pid}" 2>/dev/null || true
+        wait "${window_icon_manager_pid}" 2>/dev/null || true
+        window_icon_manager_pid=''
+    fi
+}
+
 stop_image_clipboard_bridge() {
     if [[ -n "${image_clipboard_bridge_pid}" ]]; then
         kill "${image_clipboard_bridge_pid}" 2>/dev/null || true
@@ -90,6 +99,7 @@ stop_image_clipboard_bridge() {
 stop_runtime_helpers() {
     stop_shadow_suppressor
     stop_titlebar_overlay_manager
+    stop_window_icon_manager
     stop_image_clipboard_bridge
 }
 
@@ -123,6 +133,11 @@ fi
 if [[ "${WECOM_MANAGE_TITLEBAR_OVERLAY:-1}" != "0" ]]; then
     "${SCRIPT_DIR}/manage-wecom-titlebar-overlay.sh" 9>&- &
     titlebar_overlay_manager_pid="$!"
+fi
+
+if [[ "${WECOM_MANAGE_WINDOW_ICON:-1}" != "0" ]]; then
+    "${SCRIPT_DIR}/manage-wecom-window-icon.sh" 9>&- &
+    window_icon_manager_pid="$!"
 fi
 
 if [[ "${WECOM_IMAGE_CLIPBOARD_BRIDGE:-1}" != "0" ]]; then

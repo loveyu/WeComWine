@@ -30,7 +30,16 @@ if flatpak info --user "${RICHEDIT_EXTENSION_ID}//${RICHEDIT_EXTENSION_BRANCH}" 
     >/dev/null 2>&1; then
     if ! "${SCRIPT_DIR}/sync-native-richedit-extension.sh"; then
         printf 'RichEdit Flatpak 扩展同步失败，将按已安装组件状态继续。\n' >&2
+        if [[ "${require_native}" == "1" ]]; then
+            exit 78
+        fi
     fi
+elif [[ "${require_native}" == "1" ]]; then
+    write_status "${STATUS_FILE}" "missing-extension" \
+        "ref=${RICHEDIT_EXTENSION_ID}//${RICHEDIT_EXTENSION_BRANCH}"
+    printf '缺少强制依赖的 RichEdit Flatpak 扩展：%s//%s\n' \
+        "${RICHEDIT_EXTENSION_ID}" "${RICHEDIT_EXTENSION_BRANCH}" >&2
+    exit 78
 fi
 
 if [[ ! -f "${NATIVE_RICHEDIT_DLL_HOST}" ]]; then

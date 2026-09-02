@@ -7,5 +7,5 @@ Icon=io.github.loveyu.WeComWine
 Terminal=false
 Categories=Network;InstantMessaging;
 StartupNotify=true
-StartupWMClass=WXWork.exe
+StartupWMClass=wxwork.exe
 X-GNOME-UsesNotifications=true
