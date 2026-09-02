@@ -26,6 +26,20 @@ jobs:
       - name: Build runner and Flatpak bundles
         run: ./scripts/ci-package-flatpaks.sh
 
+      - name: Show package diagnostics
+        if: failure()
+        run: |
+          status_file="$HOME/.local/state/wecom-flatpak-poc/portal-build.status"
+          log_file="$HOME/.local/state/wecom-flatpak-poc/logs/portal-build.log"
+          if [[ -f "$status_file" ]]; then
+            echo '== portal-build.status =='
+            cat "$status_file"
+          fi
+          if [[ -f "$log_file" ]]; then
+            echo '== portal-build.log (last 500 lines) =='
+            tail -n 500 "$log_file"
+          fi
+
       - name: Upload Flatpak bundles
         uses: actions/upload-artifact@v7
         with:
