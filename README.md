@@ -35,6 +35,9 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
   图片聊天重绘；仅保留显式诊断开关，不修改 KDE 全局阴影。
 - 不安装企业微信专用 KWin 窗口规则，边框和窗口层级完全交由企业微信与 KWin
   正常协商，避免强制边框残留导致窗口持续位于最顶层。
+- 最大化时仅在企业微信主窗口位于前台才映射其自绘顶栏。该顶栏是绕过 KWin
+  管理的 X11 窗口；前台切换时同步隐藏/恢复，避免它覆盖其他应用的窗口按钮并
+  截获点击。
 - 用户级 systemd 启动管理和官方 Wine runner 回滚；企业微信退出后保持停止。
 - 默认给企业微信内置 Chromium 禁用 GPU 加速，避免 ANGLE 无法创建设备时持续
   重启 GPU 子进程并最终触发栈溢出；每次启动记录并只清理自己的 Flatpak 实例。
@@ -143,6 +146,13 @@ journalctl --user -u wecom-flatpak-poc-app.service -f
 `WECOM_DISABLE_WINDOW_SHADOW=1`；该功能依赖宿主已有的 `xprop`、`xwininfo` 和
 coreutils `stdbuf`，缺失时只记录提示，不影响企业微信启动。候选窗口先由 X11
 窗口树按应用、空标题和尺寸预筛，避免常态轮询整个桌面。
+
+默认启用最大化自绘顶栏管理，只匹配属于最大化企业微信主窗口、宽度与主窗口
+相同且高度为 24～96 像素的 ARGB `override-redirect` 对话框；菜单、普通对话框
+和其他应用不会命中。切走企业微信时取消映射，重新激活时恢复映射，因而不会用
+透明度掩盖仍可截获点击的窗口。设置 `WECOM_MANAGE_TITLEBAR_OVERLAY=0` 可临时
+关闭这一兼容处理。该功能依赖宿主已有的 `xdotool`、`xprop`、`xwininfo` 和
+coreutils `stdbuf`，缺失时自动降级，不阻止企业微信启动。
 
 默认启用图片剪贴板桥接，仅读取 CopyQ 当前剪贴板的 `image/png`，转换用的
 临时文件权限为当前用户私有并在每轮后删除。宿主缺少 `copyq`、`magick`
