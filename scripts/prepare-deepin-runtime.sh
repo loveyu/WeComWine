@@ -8,6 +8,15 @@ readonly helper_gl_root="/app/share/wecom-deepin/helper/gl-wine"
 
 install -d "${prefix}"
 
+# Wine 11 owns graphics selection in the combined package. Deepin's gl-wine
+# probe and gdid3d.reg are intended for its Wine 10 engine and must not be
+# applied to the replacement engine.
+if [[ -f "${prefix}/.wine-engine" ]] && \
+   [[ "$(<"${prefix}/.wine-engine")" == wine-11.* ]]; then
+    touch "${prefix}/.libglhardware" "${prefix}/.init_d3d"
+    exit 0
+fi
+
 # This is the application-specific part of Deepin's CallPreRun routine.  The
 # complete run_v4.sh cannot be used here: it assumes /opt paths, invokes DTK
 # desktop UI and may replace a prefix based on Debian package state.

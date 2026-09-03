@@ -42,9 +42,10 @@ fi
 
 flatpak info --user "${DEEPIN_FLATPAK_APP}//${DEEPIN_FLATPAK_BRANCH}" >/dev/null
 if flatpak run --user --command=sh "${DEEPIN_FLATPAK_APP}" -c '
-    test ! -e /app/deepin-wine10-stable/bin/winedbg &&
-    test ! -e /app/deepin-wine10-stable/lib/wine/i386-windows/winedbg.exe &&
-    test ! -e /app/deepin-wine10-stable/lib/wine/x86_64-windows/winedbg.exe
+    test ! -e /app/bin/winedbg &&
+    test ! -e /app/bin/winegdb &&
+    test ! -e /app/lib/wine/i386-windows/winedbg.exe &&
+    test ! -e /app/lib/wine/x86_64-windows/winedbg.exe
 '; then
     :
 else
@@ -67,7 +68,7 @@ source "${SCRIPT_DIR}/common.sh"
 write_status "${STATUS_FILE}" "initialize-official-prefix" "${DEEPIN_WINEPREFIX_HOST}"
 flatpak_wine sh /app/share/wecom-deepin/initialize-prefix.sh
 flatpak_wine sh /app/share/wecom-deepin/install-official-wecom.sh
-flatpak_wine wine regedit /S /app/share/wecom-deepin/adapter/wxworkweb.reg
+flatpak_wine sh /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
 
 write_status "${STATUS_FILE}" "prepared" \
     "runner=${DEEPIN_FLATPAK_APP},prefix=${DEEPIN_WINEPREFIX_HOST}"

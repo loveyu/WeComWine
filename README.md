@@ -166,11 +166,15 @@ Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重�
 集成安装器也会移除旧的“企业微信（Wine Flatpak）”入口，只保留 Deepin 官方包
 导出的桌面入口。
 
-Deepin Wine 下的企业微信 CEF 固定使用 `--disable-gpu` 与
-`--disable-gpu-compositing` 软件合成，绕开 Windows ANGLE 的 D3D11/D3D9 初始化
-失败和 ANGLE OpenGL 无法给 Wine 子窗口设置像素格式的问题。CEF 在 Wine 中原本
-会在 renderer sandbox 连续失败后自动降级为无 sandbox，启动入口直接使用该最终
-模式，避免首批 WebView renderer 在重试期间退出。
+当前本机 Deepin Flatpak 保留 Deepin 官方企业微信代码包、适配资源、字体和
+`deepin-wine-helper` 文件，但运行引擎切换为已验证的 Wine 11.0，并且不加载仅适用
+于 Deepin Wine 10 的 `WINEPREDLL`/`renderer=gdi` 覆盖。企业微信 CEF 只传入
+`--disable-gpu` 使用软件渲染；外部 HTTP/HTTPS 链接由 `winebrowser.exe` 转交
+Flatpak OpenURI Portal，在系统默认浏览器中打开。
+
+首次从旧 Deepin Wine 10 前缀启动时会原位迁移 Wine 系统文件和注册表，同时保留
+登录数据、文泉驿微米黑字体及可恢复的旧 `system32`/`syswow64` 目录备份。迁移和
+正常启动均不调用 WineDbg，也不会自动打开聊天或链接。
 
 默认启用任务栏窗口图标管理，只处理 KWin `_NET_CLIENT_LIST` 中 `WM_CLASS` 为
 `wxwork.exe` 的受管窗口，不修改托盘图标，也不清除企业微信用于消息提醒的

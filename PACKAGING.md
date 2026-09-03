@@ -11,26 +11,27 @@
 3. `wecom-wine-flatpak` 用户级集成层：包含下载校验、前缀初始化、systemd
    单元、桌面入口、切换/回滚和诊断脚本。
 
-另有本机兼容性验证专用的 `io.github.loveyu.WeComWine.Deepin` Flatpak。它使用
-Deepin/统信官方应用商店的 `deepin-wine10-stable 10.14deepin11`，并在本机
-构建时提取官方企业微信包 `5.0.0.6008deepin8` 中的 `WINEPREDLL` 适配层。该包
-完整携带该包的适配目录和 `files.7z`，首次切换时直接初始化其官方预制前缀，
-包括 `WINEPREDLL`、原生 RichEdit、注册表以及预运行/更新辅助文件；随后在同一
-前缀内静默安装腾讯官方企业微信 5.0.10.6025。它不复制其他现有前缀，使用独立的
-`/var/data/wine-wecom-deepin` 前缀，不覆盖正式 Wine 11 前缀；同时封装适配包
-声明依赖的文泉驿微米黑字体、`deepin-wine-helper` 的 GL/GDI 预检组件、7z 和
-Deepin Wine 缺少的原生库 ABI，并在构建时移除 WineDbg 入口，禁止以调试模式运行。
-完整 Deepin 企业微信代码和腾讯安装包只进入本机私有测试包，不进入 Git。
+当前本机实际交付使用 `io.github.loveyu.WeComWine.Deepin` 单一 Flatpak，不再
+安装独立 Wine 或 RichEdit 应用。它完整携带 Deepin/统信官方企业微信包
+`5.0.0.6008deepin8` 的适配目录、`files.7z`、预制前缀、原生 RichEdit、注册表和
+辅助文件，并在同一前缀内安装腾讯官方企业微信 5.0.10.6025。运行引擎使用已验证
+的 Wine 11.0；Deepin Wine 10 引擎只作为来源校验，不进入运行路径，针对旧引擎的
+`WINEPREDLL` 和 `renderer=gdi` 覆盖也不激活。
+
+Flatpak 同时封装文泉驿微米黑字体、`deepin-wine-helper` 资源、7z 与所需原生库
+ABI；所有 WineDbg 入口在构建和前缀迁移时移除，禁止以调试模式运行。HTTP/HTTPS
+链接经 Wine 11 的 `winebrowser.exe` 和 Flatpak OpenURI Portal 交给系统默认浏览器。
+首次启动会迁移既有 Deepin 前缀，保留登录数据并将旧 Wine 系统目录留作可恢复
+备份。完整 Deepin 企业微信代码和腾讯安装包只进入本机私有包，不进入 Git。
 腾讯 5.0.10 使用与标准 Runner 相同的窄匹配 CEF 107 兼容补丁；启动环境固定
 `WINE_WMCLASS=com.qq.weixin.work.deepin`。独立的宿主顶栏服务也兼容既有
 `WM_CLASS=Wine` 窗口，仅在最大化主窗口失去焦点时隐藏其独立 ARGB 自绘顶栏，
 避免覆盖其他应用右上角。
 
-Deepin Wine 的 WoW64 加载器硬编码安装路径 `/opt/deepin-wine10-stable`，而
-Flatpak 应用负载位于 `/app/deepin-wine10-stable`。构建脚本会在引擎及官方
-`WINEPREDLL` 适配层内执行 25 字节等长路径替换；这不是企业微信二进制补丁。
-新 WoW64 虽然只包含 64 位 Unix 模块，Flatpak 沙箱仍必须声明
-`--allow=multiarch`，否则所有 32 位 PE 会在进入程序代码前启动失败。
+预制前缀中指向 `/opt/deepin-wine10-stable` 的 Wine 内置模块链接会映射到
+`/app/lib/wine`，随后由 `wineboot -u` 完成 Wine 11 原位迁移；这不修改腾讯程序
+文件。Flatpak 沙箱仍声明 `--allow=multiarch` 并启用 i386 兼容/GL 扩展，供企业
+微信 32 位主程序与 64 位辅助组件共同运行。
 
 腾讯企业微信安装包由目标机器根据固定 HTTPS URL 下载并校验 SHA-256，不能进入
 Git、源码归档、公开 Flatpak 仓库或公开发行附件；上述本机私有 Deepin 测试包是
@@ -60,16 +61,16 @@ make deepin-flatpak-local
 - `make dist` 生成排序、固定时间戳和固定 owner 的源码归档及 SHA-256 文件。
 - `make flatpak-bundles` 从已构建 OSTree 仓库导出主 Flatpak；设置
   `WECOM_RICHEDIT_DLL=/secure/path/riched20.dll` 时同时生成私有 RichEdit 扩展。
-- `make deepin-flatpak-local` 从 Deepin/统信官方应用商店下载并校验 Deepin Wine
-  和企业微信适配包，并校验腾讯官方企业微信 5.0.10.6025 安装包，生成、安装独立
+- `make deepin-flatpak-local` 从 Deepin/统信官方应用商店下载并校验 Deepin 来源
+  包，复用固定摘要的 Wine 11.0 运行文件，并校验腾讯官方企业微信 5.0.10.6025
+  安装包，生成、安装独立
   应用 ID 的本地测试 Flatpak。生成物位于
   `artifacts/deepin-private/`，含官方适配二进制，仅限本机测试，不进入公开 CI、
   GitHub Release 或项目 Flatpak 仓库。
 - `scripts/switch-to-deepin-runner.sh` 停止当前 runner，直接从 Flatpak 内置的
   Deepin 官方代码包初始化独立前缀并切换集成层；默认只准备、不启动，加
-  `--start` 才会以正常模式启动。Deepin 模式启用适用于 5.0.10 的 CEF 补丁和
-  宿主顶栏管理，但仍不启用 Portal、Win2k RichEdit 扩展、任务栏图标或图片
-  剪贴板桥接。
+  `--start` 才会以正常模式启动。Deepin 模式启用适用于 5.0.10 的 CEF 补丁、
+  OpenURI Portal 和宿主顶栏管理；不依赖独立 RichEdit Flatpak。
 - `scripts/install-flatpak-bundles.sh MAIN.flatpak [RICHEDIT.flatpak]` 以用户级
   Flatpak 模式安装制品和集成层，但不自动安装企业微信程序。
 - GitHub CI 把版本化 `install-wecomwine-VERSION.sh`、主 Runner、源码归档及统一

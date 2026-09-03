@@ -36,6 +36,8 @@ readonly LIBPCSCLITE_SHA256="5e8c144054ad2af3b3d362fcebe8a1d5eed84c1aec7e7031034
 readonly LIBSANE_SHA256="8430aa2ad6b219903d9033073cf0f80f32f7f2f0366ac56aa2153cff88467c7f"
 readonly LIBXML2_SHA256="36b25f4121dd6765f49a5249a94f675139c4fbaae04be5ccc1ac3ae59f1e40c2"
 readonly LIBICU74_SHA256="6e57a1e71d4e938663bfb064d370d1e8411dc5f4a5de828c24669f0dc95f6631"
+readonly PORTAL_WINE_VERSION="11.0"
+readonly PORTAL_WINE_BINARY_SHA256="5c9c3d3625e75e0bbf82d25b1d78020219d952c955e108564484ba42fac309c7"
 
 CACHE_ROOT="${WECOM_DEEPIN_CACHE_DIR:-${XDG_CACHE_HOME}/wecom-flatpak-poc/deepin-engine}"
 BUILD_ROOT="${WECOM_DEEPIN_BUILD_DIR:-${CACHE_ROOT}/build-${ENGINE_VERSION}-${WECOM_ADAPTER_VERSION}}"
@@ -43,6 +45,7 @@ APP_DIR="${BUILD_ROOT}/appdir"
 LOCAL_REPO="${WECOM_DEEPIN_FLATPAK_REPO:-${XDG_DATA_HOME}/wecom-flatpak-poc/deepin-flatpak-repo}"
 REMOTE_NAME="${WECOM_DEEPIN_FLATPAK_REMOTE:-wecom-deepin-local}"
 ARTIFACT_DIR="${WECOM_DEEPIN_ARTIFACT_DIR:-${PROJECT_DIR}/artifacts/deepin-private}"
+SKIP_INSTALL="${WECOM_DEEPIN_SKIP_INSTALL:-0}"
 ENGINE_DEB="${WECOM_DEEPIN_ENGINE_DEB:-${CACHE_ROOT}/deepin-wine10-stable_${ENGINE_VERSION}_amd64.deb}"
 HELPER_DEB="${WECOM_DEEPIN_HELPER_DEB:-${CACHE_ROOT}/deepin-wine-helper_${HELPER_VERSION}_amd64.deb}"
 WECOM_ADAPTER_DEB="${WECOM_DEEPIN_WECOM_DEB:-${CACHE_ROOT}/com.qq.weixin.work.deepin_${WECOM_ADAPTER_VERSION}_amd64.deb}"
@@ -57,7 +60,8 @@ LIBPCSCLITE_DEB="${CACHE_ROOT}/libpcsclite1_2.3.1-1_amd64.deb"
 LIBSANE_DEB="${CACHE_ROOT}/libsane1_1.2.1-5deepin1+rb1_amd64.deb"
 LIBXML2_DEB="${CACHE_ROOT}/libxml2_2.9.14+dfsg-1.3+rb2_amd64.deb"
 LIBICU74_DEB="${CACHE_ROOT}/libicu74_74.2-1deepin1_amd64.deb"
-BUNDLE_FILE="${ARTIFACT_DIR}/${APP_ID}-${ENGINE_VERSION}.flatpak"
+PORTAL_WINE_FILES="${WECOM_PORTAL_WINE_FILES:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11/appdir/files}"
+BUNDLE_FILE="${ARTIFACT_DIR}/${APP_ID}-wine${PORTAL_WINE_VERSION}-deepin${WECOM_ADAPTER_VERSION}.flatpak"
 
 require_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -100,6 +104,28 @@ download_verified() {
 for required_command in 7z curl dpkg-deb flatpak sha256sum; do
     require_command "${required_command}"
 done
+
+for required_path in \
+    "${PORTAL_WINE_FILES}/bin/wine" \
+    "${PORTAL_WINE_FILES}/bin/wineserver" \
+    "${PORTAL_WINE_FILES}/lib/wine/i386-unix/ntdll.so" \
+    "${PORTAL_WINE_FILES}/lib/wine/x86_64-unix/ntdll.so" \
+    "${PORTAL_WINE_FILES}/lib/wine/i386-windows/winebrowser.exe" \
+    "${PORTAL_WINE_FILES}/lib/wine/x86_64-windows/winebrowser.exe"; do
+    if [[ ! -e "${required_path}" ]]; then
+        printf '缺少已验证的 Wine 11 运行文件：%s\n' "${required_path}" >&2
+        exit 69
+    fi
+done
+portal_wine_sha256="$(sha256sum "${PORTAL_WINE_FILES}/bin/wine" | awk '{print $1}')"
+if [[ "${portal_wine_sha256}" != "${PORTAL_WINE_BINARY_SHA256}" ]]; then
+    printf 'Wine 11 运行文件摘要不匹配：%s\n' "${portal_wine_sha256}" >&2
+    exit 65
+fi
+if [[ "$("${PORTAL_WINE_FILES}/bin/wine" --version)" != "wine-${PORTAL_WINE_VERSION}" ]]; then
+    printf 'Wine 运行版本不是已验证的 %s。\n' "${PORTAL_WINE_VERSION}" >&2
+    exit 65
+fi
 
 install -d "${CACHE_ROOT}" "$(dirname -- "${BUILD_ROOT}")"
 download_verified "${ENGINE_URL}" "${ENGINE_DEB}" "${ENGINE_SHA256}"
@@ -188,7 +214,7 @@ fi
 printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
-build_signature="${APP_ID}:${ENGINE_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v16-cef-software-compositing"
+build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v17-wine11-system-browser"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -204,6 +230,7 @@ if [[ ! -f "${APP_DIR}/metadata" ]]; then
 fi
 
 flatpak build \
+    --bind-mount="/run/portal-wine=${PORTAL_WINE_FILES}" \
     --bind-mount="/run/deepin-engine=${engine_source}" \
     --bind-mount="/run/deepin-helper=${helper_source}" \
     --bind-mount="/run/deepin-runtime=${runtime_extract}" \
@@ -213,7 +240,20 @@ flatpak build \
     --bind-mount="/run/project=${PROJECT_DIR}" \
     "${APP_DIR}" env LC_ALL=C LANG=C bash -lc '
         set -Eeuo pipefail
-        install -d /app/deepin-wine10-stable /app/bin \
+        # Start with the complete, previously validated Wine 11 application
+        # runtime. This includes both WoW64 halves and winebrowser.exe. Skip
+        # the empty i386 extension mount points so a repeated build can update
+        # an already-finished appdir without writing through read-only mounts.
+        while IFS= read -r -d "" runtime_path; do
+            cp -a "${runtime_path}" /app/
+        done < <(find /run/portal-wine -mindepth 1 -maxdepth 1 \
+            ! -name lib ! -name .ref -print0)
+        install -d /app/lib
+        while IFS= read -r -d "" runtime_path; do
+            cp -a "${runtime_path}" /app/lib/
+        done < <(find /run/portal-wine/lib -mindepth 1 -maxdepth 1 \
+            ! -name i386-linux-gnu -print0)
+        install -d /app/bin \
             /app/share/wecom-deepin/adapter /app/share/wecom-deepin/official \
             /app/share/wecom-deepin/helper/gl-wine \
             /app/share/doc/deepin-wine10-stable \
@@ -222,7 +262,6 @@ flatpak build \
             /app/lib/deepin-compat /app/lib/p7zip \
             /app/share/fonts/truetype/wqy /app/share/applications \
             /app/share/icons/hicolor/256x256/apps
-        cp -a /run/deepin-engine/. /app/deepin-wine10-stable/
         # Preserve the complete Deepin application adapter, including its
         # prefix template, WINEPREDLL overlay, registry and pre-run/update
         # helpers.  The Tencent installer updates only the client payload.
@@ -257,6 +296,8 @@ flatpak build \
             /app/bin/deepin-wine
         install -m 0755 /run/project/scripts/initialize-deepin-prefix.sh \
             /app/share/wecom-deepin/initialize-prefix.sh
+        install -m 0755 /run/project/scripts/migrate-deepin-prefix-to-wine11.sh \
+            /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
         install -m 0755 /run/project/scripts/install-deepin-official-wecom.sh \
             /app/share/wecom-deepin/install-official-wecom.sh
         install -m 0755 /run/project/scripts/patch-wecom-cef.sh \
@@ -269,26 +310,11 @@ flatpak build \
             /app/share/applications/io.github.loveyu.WeComWine.Deepin.desktop
         install -m 0644 /run/project/icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png \
             /app/share/icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.Deepin.png
-        ln -sfn deepin-wine /app/bin/wine
-
-        # Deepin installs this engine below /opt and its WoW64 loader embeds
-        # that absolute path.  Flatpak application payloads live below /app.
-        # Both prefixes are exactly 25 bytes, so an in-place replacement keeps
-        # every binary offset intact while allowing 32-bit PE startup.
-        while IFS= read -r -d "" candidate; do
-            if LC_ALL=C grep -aql "/opt/deepin-wine10-stable" "${candidate}"; then
-                perl -pi -e \
-                    '\''s{/opt/deepin-wine10-stable}{/app/deepin-wine10-stable}g'\'' \
-                    "${candidate}"
-            fi
-        done < <(find /app/deepin-wine10-stable \
-            /app/share/wecom-deepin/adapter/dlls -type f -print0)
-
         # Prevent both explicit and automatic Wine debugger startup.  This is
         # a deliberate product-safety boundary for the WeCom account.
-        rm -f /app/deepin-wine10-stable/bin/winedbg \
-            /app/deepin-wine10-stable/lib/wine/i386-windows/winedbg.exe \
-            /app/deepin-wine10-stable/lib/wine/x86_64-windows/winedbg.exe
+        rm -f /app/bin/winedbg /app/bin/winegdb \
+            /app/lib/wine/i386-windows/winedbg.exe \
+            /app/lib/wine/x86_64-windows/winedbg.exe
     '
 
 copyright_file="${engine_extract}/usr/share/doc/deepin-wine10-stable/copyright"
@@ -307,6 +333,7 @@ fi
 
 if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
    [[ "$(<"${BUILD_ROOT}/finished")" != "${build_signature}" ]]; then
+    gl_merge_dirs='vulkan/icd.d;glvnd/egl_vendor.d;egl/egl_external_platform.d;OpenCL/vendors;lib/dri;lib/d3d;lib/gbm;vulkan/explicit_layer.d;vulkan/implicit_layer.d;vdpau'
     flatpak build-finish \
         --command=wecom-deepin \
         --share=ipc \
@@ -316,6 +343,19 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
         --device=dri \
         --allow=multiarch \
         --filesystem=xdg-download/WeCom:create \
+        --extension=org.freedesktop.Platform.Compat.i386=directory=lib/i386-linux-gnu \
+        --extension=org.freedesktop.Platform.Compat.i386=version=25.08 \
+        --extension=org.freedesktop.Platform.GL32=directory=lib/i386-linux-gnu/GL \
+        --extension=org.freedesktop.Platform.GL32=version=1.4 \
+        '--extension=org.freedesktop.Platform.GL32=versions=25.08;25.08-extra;1.4' \
+        --extension=org.freedesktop.Platform.GL32=subdirectories=true \
+        --extension=org.freedesktop.Platform.GL32=no-autodownload=true \
+        --extension=org.freedesktop.Platform.GL32=download-if=active-gl-driver \
+        --extension=org.freedesktop.Platform.GL32=enable-if=active-gl-driver \
+        --extension=org.freedesktop.Platform.GL32=autoprune-unless=active-gl-driver \
+        --extension="org.freedesktop.Platform.GL32=merge-dirs=${gl_merge_dirs}" \
+        --extension=org.freedesktop.Platform.codecs_extra.i386=directory=lib/i386-linux-gnu/codecs-extra \
+        --extension=org.freedesktop.Platform.codecs_extra.i386=version=25.08-extra \
         --env=WINEPREFIX=/var/data/wine-wecom-deepin \
         --env=LANG=zh_CN.UTF-8 \
         --env=LC_ALL=zh_CN.UTF-8 \
@@ -323,10 +363,9 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
         --env=GTK_IM_MODULE=fcitx \
         --env=QT_IM_MODULE=fcitx \
         --env=ATTACH_FILE_DIALOG=1 \
-        --env=PATH=/app/bin:/app/deepin-wine10-stable/bin:/usr/bin \
-        --env=LD_LIBRARY_PATH=/app/lib/deepin-compat \
-        --env=WINEDLLPATH=/app/deepin-wine10-stable/lib:/app/deepin-wine10-stable/lib64 \
-        --env=WINEPREDLL=/app/share/wecom-deepin/adapter/dlls \
+        --env=PATH=/app/bin:/usr/bin \
+        --env=LD_LIBRARY_PATH=/app/lib/deepin-compat:/app/lib \
+        --env=WINEDLLPATH=/app/lib/wine \
         --env=WINE_WMCLASS=com.qq.weixin.work.deepin \
         "${APP_DIR}"
     printf '%s\n' "${build_signature}" > "${BUILD_ROOT}/finished"
@@ -334,7 +373,7 @@ fi
 printf '%s\n' "${build_signature}" > "${BUILD_ROOT}/signature"
 
 flatpak build-export --disable-fsync \
-    --subject="Deepin Wine ${ENGINE_VERSION} adapter ${WECOM_ADAPTER_VERSION} with official WeCom ${WECOM_VERSION}" \
+    --subject="Wine ${PORTAL_WINE_VERSION} with Deepin WeCom adapter ${WECOM_ADAPTER_VERSION} and official WeCom ${WECOM_VERSION}" \
     "${LOCAL_REPO}" "${APP_DIR}" "${APP_BRANCH}"
 
 repo_url="file://${LOCAL_REPO}"
@@ -344,13 +383,19 @@ else
     flatpak remote-add --user --no-gpg-verify "${REMOTE_NAME}" "${repo_url}"
 fi
 
-flatpak install --user --noninteractive -y --reinstall --no-deps --no-related \
-    "${REMOTE_NAME}" "${APP_ID}//${APP_BRANCH}"
+if [[ "${SKIP_INSTALL}" != "1" ]]; then
+    flatpak install --user --noninteractive -y --reinstall --no-deps --no-related \
+        "${REMOTE_NAME}" "${APP_ID}//${APP_BRANCH}"
+fi
 
 flatpak build-bundle --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
     "${LOCAL_REPO}" "${BUNDLE_FILE}" "${APP_ID}" "${APP_BRANCH}"
 sha256sum "${BUNDLE_FILE}" > "${BUNDLE_FILE}.sha256"
 
-printf '已创建并安装：%s//%s\n' "${APP_ID}" "${APP_BRANCH}"
+if [[ "${SKIP_INSTALL}" == "1" ]]; then
+    printf '已创建（未安装）：%s//%s\n' "${APP_ID}" "${APP_BRANCH}"
+else
+    printf '已创建并安装：%s//%s\n' "${APP_ID}" "${APP_BRANCH}"
+fi
 printf '本地私有 Flatpak：%s\n' "${BUNDLE_FILE}"
 printf '注意：该制品含官方 Deepin/企业微信适配二进制，不得作为本项目公开附件发布。\n'

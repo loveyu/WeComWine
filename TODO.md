@@ -79,6 +79,9 @@
   启动时按唯一指令结构定点修补并保留摘要备份，未知新版本安全跳过且不限制更新。
 - [x] 真实账号复验内置 CEF 网页恢复正常；Flatpak Portal → Chromium 的系统
   浏览器链路也已直接验证，私有 CEF 二进制不进入仓库或公开制品。
+- [x] 将本机 Deepin 单包切换到已验证的 Wine 11.0 引擎，保留 Deepin 官方代码包、
+  字体、RichEdit 与辅助资源；移除旧 `renderer=gdi` 覆盖并恢复 OpenURI Portal
+  系统浏览器链路，前缀迁移保留登录数据且全程不启用 WineDbg。
 
 ## 生成正式独立包前
 
