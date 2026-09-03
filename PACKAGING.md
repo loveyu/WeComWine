@@ -18,11 +18,13 @@ Deepin/统信官方应用商店的 `deepin-wine10-stable 10.14deepin11`，并在
 包括 `WINEPREDLL`、原生 RichEdit、注册表以及预运行/更新辅助文件；随后在同一
 前缀内静默安装腾讯官方企业微信 5.0.10.6025。它不复制其他现有前缀，使用独立的
 `/var/data/wine-wecom-deepin` 前缀，不覆盖正式 Wine 11 前缀；同时封装适配包
-声明依赖的文泉驿微米黑字体，并在构建时移除 WineDbg 入口，禁止以调试模式运行。
+声明依赖的文泉驿微米黑字体、`deepin-wine-helper` 的 GL/GDI 预检组件、7z 和
+Deepin Wine 缺少的原生库 ABI，并在构建时移除 WineDbg 入口，禁止以调试模式运行。
 完整 Deepin 企业微信代码和腾讯安装包只进入本机私有测试包，不进入 Git。
-腾讯 5.0.10 使用与标准 Runner 相同的窄匹配 CEF 107 兼容补丁；宿主顶栏管理器
-同时识别 Deepin Wine 的 `WM_CLASS=Wine`，仅在最大化主窗口失去焦点时隐藏其
-独立 ARGB 自绘顶栏，避免覆盖其他应用右上角。
+腾讯 5.0.10 使用与标准 Runner 相同的窄匹配 CEF 107 兼容补丁；启动环境固定
+`WINE_WMCLASS=com.qq.weixin.work.deepin`。独立的宿主顶栏服务也兼容既有
+`WM_CLASS=Wine` 窗口，仅在最大化主窗口失去焦点时隐藏其独立 ARGB 自绘顶栏，
+避免覆盖其他应用右上角。
 
 Deepin Wine 的 WoW64 加载器硬编码安装路径 `/opt/deepin-wine10-stable`，而
 Flatpak 应用负载位于 `/app/deepin-wine10-stable`。构建脚本会在引擎及官方
@@ -51,7 +53,8 @@ make deepin-flatpak-local
 
 - `make check` 校验 shell 语法、补丁数量，并阻止 EXE/MSI/Flatpak 二进制进入仓库。
 - `make install-user` 安装到 `~/.local/share/wecom-wine-flatpak`，部署用户级
-  systemd 和桌面入口，但不会自动启动或安装企业微信专用 KWin 窗口规则。
+  systemd 和桌面入口，但不会自动启动或安装企业微信专用 KWin 窗口规则；顶栏
+  兼容由独立的 X11 用户服务完成。
 - `scripts/install-native-richedit.sh /path/to/riched20.dll` 校验并安装用户自备
   RichEdit 到独立数据目录，不修改正式 Wine 前缀。
 - `make dist` 生成排序、固定时间戳和固定 owner 的源码归档及 SHA-256 文件。

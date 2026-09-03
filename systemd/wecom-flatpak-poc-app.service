@@ -1,7 +1,8 @@
 [Unit]
 Description=Run WeCom in Wine Flatpak
 Requires=wecom-flatpak-poc-bootstrap.service
-After=wecom-flatpak-poc-bootstrap.service graphical-session.target
+Wants=wecom-flatpak-poc-window-integration.service
+After=wecom-flatpak-poc-bootstrap.service wecom-flatpak-poc-window-integration.service graphical-session.target
 PartOf=wecom-flatpak-poc.target
 
 [Service]

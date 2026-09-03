@@ -10,6 +10,7 @@ printf '== systemd ==\n'
 systemctl --user --no-pager --full status \
     wecom-flatpak-poc-bootstrap.service \
     wecom-flatpak-poc-app.service \
+    wecom-flatpak-poc-window-integration.service \
     wecom-flatpak-poc-build.service \
     wecom-flatpak-poc-switch.service \
     wecom-flatpak-poc-portal-test.service || true

@@ -65,23 +65,27 @@ cef_sha256="$(sha256sum "${cef_dll}" | awk '{print $1}')"
 # unique occurrence, and patch only its conditional branch.  Relocation/IAT
 # addresses and branch displacements are intentionally treated as variables
 # so a normal WeCom update is not blocked by a fixed binary hash.
-scan_output="$(LC_ALL=C perl -0777 -e '
-    use strict;
-    use warnings;
+scan_output="$(LC_ALL=C python3 - "${cef_dll}" <<'PY'
+import mmap
+import re
+import sys
 
-    my ($path) = @ARGV;
-    open my $fh, "<:raw", $path or die "open $path: $!\n";
-    local $/;
-    my $data = <$fh>;
-    close $fh;
+pattern = re.compile(
+    rb"\x68....\xff\x15....\x85\xc0\x0f\x84...."
+    rb"\x83\xbd\x2c\xff\xff\xff\x04"
+    rb"(?:\x0f\x85....|\x90{6})\xff\x15....",
+    re.DOTALL,
+)
 
-    while ($data =~ /\x68....\xff\x15....\x85\xc0\x0f\x84....\x83\xbd\x2c\xff\xff\xff\x04(?:\x0f\x85....|\x90{6})\xff\x15..../sg) {
-        my $branch_offset = $-[0] + 26;
-        my $branch = substr($data, $branch_offset, 6);
-        my $kind = $branch eq ("\x90" x 6) ? "patched" : "original";
-        print "$kind:$branch_offset\n";
-    }
-' "${cef_dll}")"
+with open(sys.argv[1], "rb") as stream:
+    with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
+        for match in pattern.finditer(data):
+            branch_offset = match.start() + 26
+            branch = data[branch_offset : branch_offset + 6]
+            kind = "patched" if branch == b"\x90" * 6 else "original"
+            print(f"{kind}:{branch_offset}")
+PY
+)"
 
 matches=()
 if [[ -n "${scan_output}" ]]; then

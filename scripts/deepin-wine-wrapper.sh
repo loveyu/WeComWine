@@ -17,10 +17,12 @@ case "${1:-}" in
 esac
 
 export PATH="${engine_root}/bin:${PATH}"
+export LD_LIBRARY_PATH="/app/lib/deepin-compat${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 export WINEDLLPATH="${engine_root}/lib:${engine_root}/lib64"
 export WINEPREDLL="${overlay_root}"
 export ATTACH_FILE_DIALOG=1
 export WINEPREFIX="${WINEPREFIX:-/var/data/wine-wecom-deepin}"
+export WINE_WMCLASS="${WINE_WMCLASS:-com.qq.weixin.work.deepin}"
 # Disable Wine diagnostic channels; this runner must remain in normal mode.
 export WINEDEBUG="-all"
 

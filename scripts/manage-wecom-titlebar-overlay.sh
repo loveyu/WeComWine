@@ -70,7 +70,7 @@ titlebar_owner() {
     local owner_map_state owner_override_redirect
 
     properties="$(window_properties "${window_id}")" || return 1
-    grep -Eqi '^WM_CLASS\(STRING\) = "wxwork\.exe", "(wxwork\.exe|Wine)"$' \
+    grep -Eqi '^WM_CLASS\(STRING\) = "wxwork\.exe", "(wxwork\.exe|Wine|com\.qq\.weixin\.work\.deepin)"$' \
         <<< "${properties}" || return 1
     grep -Eq '^_NET_WM_NAME\([^)]*\) = *$' \
         <<< "${properties}" || return 1
@@ -84,7 +84,7 @@ titlebar_owner() {
     [[ "${owner_id}" =~ ^0x[0-9a-fA-F]+$ ]] || return 1
 
     owner_properties="$(window_properties "${owner_id}")" || return 1
-    grep -Eqi '^WM_CLASS\(STRING\) = "wxwork\.exe", "(wxwork\.exe|Wine)"$' \
+    grep -Eqi '^WM_CLASS\(STRING\) = "wxwork\.exe", "(wxwork\.exe|Wine|com\.qq\.weixin\.work\.deepin)"$' \
         <<< "${owner_properties}" || return 1
     grep -Eq '^_NET_WM_WINDOW_TYPE.*_NET_WM_WINDOW_TYPE_NORMAL' \
         <<< "${owner_properties}" || return 1
@@ -162,7 +162,7 @@ scan_windows() {
         active_windows["${window_id}"]=1
         sync_window "${window_id}" "${current_active_window}"
     done < <(awk '
-        tolower($0) ~ /\(has no name\): \("wxwork\.exe" "(wxwork\.exe|wine)"\)/ {
+        tolower($0) ~ /\(has no name\): \("wxwork\.exe" "(wxwork\.exe|wine|com\.qq\.weixin\.work\.deepin)"\)/ {
             split($7, dimensions, "x")
             if (dimensions[1] + 0 > 400 && dimensions[2] + 0 >= 24 &&
                 dimensions[2] + 0 <= 96) print $1
@@ -206,6 +206,11 @@ cleanup() {
 
 trap 'cleanup; exit 0' TERM INT
 trap cleanup EXIT
+
+if [[ "${WECOM_MANAGE_TITLEBAR_OVERLAY:-1}" == "0" ]]; then
+    log 'disabled: WECOM_MANAGE_TITLEBAR_OVERLAY=0'
+    exit 0
+fi
 
 for command_name in xdotool xprop xwininfo awk grep stdbuf sort; do
     if ! command -v "${command_name}" >/dev/null 2>&1; then

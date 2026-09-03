@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 /app/share/wecom-deepin/initialize-prefix.sh
 /app/share/wecom-deepin/install-official-wecom.sh
+/app/share/wecom-deepin/prepare-runtime.sh
 WECOM_CEF_STANDALONE=1 \
 WECOM_CEF_ROOT="${WINEPREFIX}/drive_c/Program Files (x86)/WXWork" \
 WECOM_CEF_STATUS_FILE="${WINEPREFIX}/.cef-compat.status" \

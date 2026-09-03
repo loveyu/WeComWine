@@ -54,6 +54,18 @@
   企业微信适配包明确依赖该字体；构建脚本将字体文件及版权说明装入本地
   Flatpak，使官方前缀已有的宋体、微软雅黑字体替换规则能够生效。该字体采用
   Apache-2.0 或带字体例外的 GPL-3+ 双重许可。
+- 运行辅助包：`deepin-wine-helper 5.4.10-1`，SHA-256 为
+  `ad23f45e60e574b1eb6bd1964cc0f54e434478e1b3114be6cdb4f0dcfc6caa41`。
+  本地包只提取官方启动路径需要的 OpenGL 探测与 GDI 回退文件；不封装依赖
+  Deepin DTK 桌面的横幅、更新器、卸载器、热键和托盘程序。
+- Deepin Wine 声明但 Freedesktop 25.08 不提供兼容 SONAME 的运行库包括
+  `libcapi20.so.3`、`libgphoto2.so.6`、`libgphoto2_port.so.12`、
+  `libpcsclite.so.1` 和 `libsane.so.1`。构建脚本从 Deepin 官方 beige 仓库
+  下载相应包，并只封装 Wine 会直接加载的 ABI。`libsane.so.1` 所需的旧版
+  `libxml2.so.2`、`libicuuc.so.74` 和 `libicudata.so.74` 也一并封装；运行时
+  自带的 libxml2/ICU 新 ABI 不能替代它们。
+- `p7zip 16.02+dfsg-8` 与 `p7zip-full 16.02+dfsg-8` 用于在新用户数据目录中
+  解压官方 `files.7z` 前缀模板。所有下载均固定版本并校验 SHA-256。
 - `scripts/build-deepin-wine-flatpak.sh` 只在用户本机下载、校验和封装上述内容；
   本地包完整携带 Deepin 官方适配目录和 `files.7z`，并在该前缀内安装腾讯官方
   企业微信 5.0.10.6025。仓库不保存 `.deb`、`.exe`、企业微信程序、适配 DLL 或

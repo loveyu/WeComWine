@@ -152,12 +152,14 @@ journalctl --user -u wecom-flatpak-poc-app.service -f
 coreutils `stdbuf`，缺失时只记录提示，不影响企业微信启动。候选窗口先由 X11
 窗口树按应用、空标题和尺寸预筛，避免常态轮询整个桌面。
 
-默认启用最大化自绘顶栏管理，只匹配属于最大化企业微信主窗口、宽度与主窗口
-相同且高度为 24～96 像素的 ARGB `override-redirect` 对话框；菜单、普通对话框
-和其他应用不会命中。切走企业微信时取消映射，重新激活时恢复映射，因而不会用
-透明度掩盖仍可截获点击的窗口。设置 `WECOM_MANAGE_TITLEBAR_OVERLAY=0` 可临时
-关闭这一兼容处理。该功能依赖宿主已有的 `xdotool`、`xprop`、`xwininfo` 和
-coreutils `stdbuf`，缺失时自动降级，不阻止企业微信启动。
+独立的 `wecom-flatpak-poc-window-integration.service` 默认管理最大化自绘顶栏，
+即使从 Flatpak 桌面图标直接启动企业微信也会生效。它只匹配属于最大化企业微信
+主窗口、宽度与主窗口相同且高度为 24～96 像素的 ARGB `override-redirect`
+对话框；菜单、普通对话框和其他应用不会命中。切走企业微信时取消映射，重新
+激活时恢复映射，因而不会用透明度掩盖仍可截获点击的窗口。可在该用户服务的
+systemd override 中设置 `WECOM_MANAGE_TITLEBAR_OVERLAY=0` 关闭兼容处理。该功能
+依赖宿主已有的 `xdotool`、`xprop`、`xwininfo` 和 coreutils `stdbuf`，缺失时
+自动降级，不阻止企业微信启动。
 
 默认启用任务栏窗口图标管理，只处理 KWin `_NET_CLIENT_LIST` 中 `WM_CLASS` 为
 `wxwork.exe` 的受管窗口，不修改托盘图标，也不清除企业微信用于消息提醒的

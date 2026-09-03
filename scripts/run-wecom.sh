@@ -57,7 +57,6 @@ printf '%s starting %s scale=%s dpi=%s force-portal=%s\n' \
 
 runner_pid=''
 shadow_suppressor_pid=''
-titlebar_overlay_manager_pid=''
 window_icon_manager_pid=''
 image_clipboard_bridge_pid=''
 stop_requested=0
@@ -81,14 +80,6 @@ stop_shadow_suppressor() {
     fi
 }
 
-stop_titlebar_overlay_manager() {
-    if [[ -n "${titlebar_overlay_manager_pid}" ]]; then
-        kill "${titlebar_overlay_manager_pid}" 2>/dev/null || true
-        wait "${titlebar_overlay_manager_pid}" 2>/dev/null || true
-        titlebar_overlay_manager_pid=''
-    fi
-}
-
 stop_window_icon_manager() {
     if [[ -n "${window_icon_manager_pid}" ]]; then
         kill "${window_icon_manager_pid}" 2>/dev/null || true
@@ -107,7 +98,6 @@ stop_image_clipboard_bridge() {
 
 stop_runtime_helpers() {
     stop_shadow_suppressor
-    stop_titlebar_overlay_manager
     stop_window_icon_manager
     stop_image_clipboard_bridge
 }
@@ -138,11 +128,6 @@ if (( deepin_official_baseline == 0 )) && \
    [[ "${WECOM_DISABLE_WINDOW_SHADOW:-0}" != "0" ]]; then
     "${SCRIPT_DIR}/suppress-wecom-shadow.sh" 9>&- &
     shadow_suppressor_pid="$!"
-fi
-
-if [[ "${WECOM_MANAGE_TITLEBAR_OVERLAY:-1}" != "0" ]]; then
-    "${SCRIPT_DIR}/manage-wecom-titlebar-overlay.sh" 9>&- &
-    titlebar_overlay_manager_pid="$!"
 fi
 
 if (( deepin_official_baseline == 0 )) && \

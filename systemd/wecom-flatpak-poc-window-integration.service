@@ -1,0 +1,13 @@
+[Unit]
+Description=Apply host window integration for WeCom Wine
+After=graphical-session.target
+PartOf=wecom-flatpak-poc.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/wecom-wine-flatpak/scripts/manage-wecom-titlebar-overlay.sh
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
