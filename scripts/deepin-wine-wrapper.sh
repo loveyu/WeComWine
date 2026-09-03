@@ -23,6 +23,7 @@ export WINEDLLPATH="${engine_root}/lib/wine"
 # matching builtins.
 unset WINEPREDLL
 export ATTACH_FILE_DIALOG=1
+export WINE_FORCE_PORTAL="${WINE_FORCE_PORTAL:-1}"
 export WINEPREFIX="${WINEPREFIX:-/var/data/wine-wecom-deepin}"
 export WINE_WMCLASS="${WINE_WMCLASS:-com.qq.weixin.work.deepin}"
 # Disable Wine diagnostic channels; this runner must remain in normal mode.

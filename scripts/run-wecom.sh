@@ -42,9 +42,6 @@ if [[ "${ACTIVE_FLATPAK_APP}" == "${DEEPIN_FLATPAK_APP}" ]]; then
     deepin_official_baseline=1
 fi
 force_portal_default=1
-if (( deepin_official_baseline == 1 )); then
-    force_portal_default=0
-fi
 force_portal="${WECOM_FORCE_PORTAL:-${force_portal_default}}"
 if [[ "${force_portal}" != "0" && "${force_portal}" != "1" ]]; then
     write_status "${STATUS_FILE}" "failed" \
@@ -171,6 +168,14 @@ FLATPAK_INSTANCE_ID_FD=8 \
                 -path "*/AppData/Roaming/Tencent/WXWork/Update/Update.exe" \
                 -print -quit | grep -q .
         }
+
+        # The host systemd launcher invokes Wine directly instead of the
+        # Flatpak default command. Keep received-attachment associations in
+        # sync on this path too; the in-prefix marker makes this a no-op after
+        # the first successful configuration.
+        if [ -x /app/share/wecom-deepin/configure-host-file-open.sh ]; then
+            /app/share/wecom-deepin/configure-host-file-open.sh
+        fi
 
         update_pending=0
         if has_update_package; then

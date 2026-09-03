@@ -14,7 +14,7 @@ check:
 	@bash -n scripts/*.sh
 	@bash -n scripts/install-release.sh.in
 	@python3 -c 'from pathlib import Path; path = Path("scripts/manage-wecom-window-icon.py"); compile(path.read_text(), str(path), "exec")'
-	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 16
+	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 17
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
 		git ls-files | grep -Eiq '\.(7z|deb|exe|msi|dll|bundle|flatpak)$$'; then \
 		echo '错误：仓库中不能包含安装包或二进制发行制品' >&2; exit 1; \

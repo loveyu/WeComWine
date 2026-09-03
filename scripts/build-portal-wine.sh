@@ -58,6 +58,7 @@ for sdk_ref in "${sdk_refs[@]}"; do
 done
 
 write_status "${STATUS_FILE}" "prepare-source" "wine-${PORTAL_WINE_VERSION}-${PORTAL_PATCHSET}"
+patch_signature="$(sha256sum "${PATCH_DIR}"/*.patch | sha256sum | awk '{print $1}')"
 if [[ -f "${SOURCE_ARCHIVE}" ]]; then
     source_sha256="$(sha256sum "${SOURCE_ARCHIVE}" | awk '{print $1}')"
     if [[ "${source_sha256}" != "${PORTAL_WINE_SHA256}" ]]; then
@@ -71,7 +72,8 @@ if [[ ! -f "${SOURCE_ARCHIVE}" ]]; then
 fi
 printf '%s  %s\n' "${PORTAL_WINE_SHA256}" "${SOURCE_ARCHIVE}" | sha256sum --check -
 
-if [[ ! -f "${SOURCE_DIR}/.portal-patched" ]]; then
+if [[ ! -f "${SOURCE_DIR}/.portal-patched" ]] || \
+   [[ "$(<"${SOURCE_DIR}/.portal-patched")" != "${patch_signature}" ]]; then
     if [[ -e "${SOURCE_DIR}" ]]; then
         mv "${SOURCE_DIR}" "${SOURCE_DIR}.incomplete.$(date +%s)"
     fi
@@ -95,7 +97,7 @@ if [[ ! -f "${SOURCE_DIR}/.portal-patched" ]]; then
             exit 1
         fi
     done
-    printf '%s\n' "${PORTAL_PATCHSET}" > "${prepare_dir}/.portal-patched"
+    printf '%s\n' "${patch_signature}" > "${prepare_dir}/.portal-patched"
     mv "${prepare_dir}" "${SOURCE_DIR}"
 fi
 
@@ -135,7 +137,8 @@ flatpak build \
                 --enable-win64 \
                 --with-mingw=x86_64-w64-mingw32-gcc \
                 --disable-winemenubuilder \
-                --disable-tests
+                --disable-tests \
+                --without-opencl
         fi
         make -j"${BUILD_JOBS}"
         make install \
@@ -165,7 +168,8 @@ flatpak build \
                 --with-wine64=/run/build/build64 \
                 --with-mingw=i686-w64-mingw32-gcc \
                 --disable-winemenubuilder \
-                --disable-tests
+                --disable-tests \
+                --without-opencl
         fi
         make -j"${BUILD_JOBS}"
         make install \

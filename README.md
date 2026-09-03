@@ -170,7 +170,21 @@ Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重�
 `deepin-wine-helper` 文件，但运行引擎切换为已验证的 Wine 11.0，并且不加载仅适用
 于 Deepin Wine 10 的 `WINEPREDLL`/`renderer=gdi` 覆盖。企业微信 CEF 只传入
 `--disable-gpu` 使用软件渲染；外部 HTTP/HTTPS 链接由 `winebrowser.exe` 转交
-Flatpak OpenURI Portal，在系统默认浏览器中打开。
+Flatpak OpenURI Portal，在系统默认浏览器中打开。文件对话框使用 Wine 11.16
+Portal 构建中单独校验的 32/64 位 `comdlg32` PE/Unix 模块，避免把未完成构建目录
+中的旧无 Portal DLL 误装进单包。
+
+点击收到的常见办公文档、压缩包、图片、音视频或文本附件时，前缀中的
+`WeCom.HostOpen` 文件关联会把文件交给 `winebrowser.exe`，再经 Flatpak
+OpenURI Portal 使用宿主系统默认应用打开。关联同时写入该专用前缀的用户和
+机器 Classes 视图，避免 Wine 11 中预置的 `pngfile` 或空 ZIP ProgID 覆盖用户关联。
+可执行文件和脚本类型不会注册到
+该关联。
+
+企业微信调用 `explorer.exe /select` 定位收到的附件时，Wine 11 Explorer 的
+定制分支会把 Document Portal URI 交给宿主
+`org.freedesktop.FileManager1.ShowItems`；在 KDE 下由 Dolphin 打开目录并选中
+附件。`/desktop` 和其他 Explorer 参数仍使用 Wine 原实现。
 
 首次从旧 Deepin Wine 10 前缀启动时会原位迁移 Wine 系统文件和注册表，同时保留
 登录数据、文泉驿微米黑字体及可恢复的旧 `system32`/`syswow64` 目录备份。迁移和

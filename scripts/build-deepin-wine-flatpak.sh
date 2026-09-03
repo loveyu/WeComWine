@@ -38,6 +38,12 @@ readonly LIBXML2_SHA256="36b25f4121dd6765f49a5249a94f675139c4fbaae04be5ccc1ac3ae
 readonly LIBICU74_SHA256="6e57a1e71d4e938663bfb064d370d1e8411dc5f4a5de828c24669f0dc95f6631"
 readonly PORTAL_WINE_VERSION="11.0"
 readonly PORTAL_WINE_BINARY_SHA256="5c9c3d3625e75e0bbf82d25b1d78020219d952c955e108564484ba42fac309c7"
+readonly PORTAL_COMDLG64_DLL_SHA256="f0ae3fd9ade0d458a07d30a1a70e2443b17e0bf80abd262e78ef0bb7cbbf47ff"
+readonly PORTAL_COMDLG64_SO_SHA256="27ce2bbd7ed2a7c6e29d9d1cd1c27b9058660363a35aba37e0c1af16b00c3698"
+readonly PORTAL_COMDLG32_DLL_SHA256="8ff065ef5a413527854a1785225d7fcd25534dc9a667488b3cfdb22920739cfa"
+readonly PORTAL_COMDLG32_SO_SHA256="b628bf22f1f571e4002110b51541445ad7253dc20a0eb25d9f6ee6d62347b7d6"
+readonly PORTAL_EXPLORER64_SHA256="43535a3d38d814ff2767bd821a80d616bc5cd02181409516560e869fc1d2ad77"
+readonly PORTAL_EXPLORER32_SHA256="751029757944e153e0c8691a1cdf6f8e2696334fdf0f07dbdc9919f5572c153c"
 
 CACHE_ROOT="${WECOM_DEEPIN_CACHE_DIR:-${XDG_CACHE_HOME}/wecom-flatpak-poc/deepin-engine}"
 BUILD_ROOT="${WECOM_DEEPIN_BUILD_DIR:-${CACHE_ROOT}/build-${ENGINE_VERSION}-${WECOM_ADAPTER_VERSION}}"
@@ -61,6 +67,7 @@ LIBSANE_DEB="${CACHE_ROOT}/libsane1_1.2.1-5deepin1+rb1_amd64.deb"
 LIBXML2_DEB="${CACHE_ROOT}/libxml2_2.9.14+dfsg-1.3+rb2_amd64.deb"
 LIBICU74_DEB="${CACHE_ROOT}/libicu74_74.2-1deepin1_amd64.deb"
 PORTAL_WINE_FILES="${WECOM_PORTAL_WINE_FILES:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11/appdir/files}"
+PORTAL_DIALOG_BUILD="${WECOM_PORTAL_DIALOG_BUILD:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11}"
 BUNDLE_FILE="${ARTIFACT_DIR}/${APP_ID}-wine${PORTAL_WINE_VERSION}-deepin${WECOM_ADAPTER_VERSION}.flatpak"
 
 require_command() {
@@ -126,6 +133,36 @@ if [[ "$("${PORTAL_WINE_FILES}/bin/wine" --version)" != "wine-${PORTAL_WINE_VERS
     printf 'Wine 运行版本不是已验证的 %s。\n' "${PORTAL_WINE_VERSION}" >&2
     exit 65
 fi
+
+declare -A portal_dialog_files=(
+    ["${PORTAL_DIALOG_BUILD}/build64/dlls/comdlg32/x86_64-windows/comdlg32.dll"]="${PORTAL_COMDLG64_DLL_SHA256}"
+    ["${PORTAL_DIALOG_BUILD}/build64/dlls/comdlg32/comdlg32.so"]="${PORTAL_COMDLG64_SO_SHA256}"
+    ["${PORTAL_DIALOG_BUILD}/build32/dlls/comdlg32/i386-windows/comdlg32.dll"]="${PORTAL_COMDLG32_DLL_SHA256}"
+    ["${PORTAL_DIALOG_BUILD}/build32/dlls/comdlg32/comdlg32.so"]="${PORTAL_COMDLG32_SO_SHA256}"
+)
+for portal_dialog_file in "${!portal_dialog_files[@]}"; do
+    if [[ ! -f "${portal_dialog_file}" ]]; then
+        printf '缺少已验证的 Portal 对话框模块：%s\n' \
+            "${portal_dialog_file}" >&2
+        exit 69
+    fi
+    printf '%s  %s\n' "${portal_dialog_files["${portal_dialog_file}"]}" \
+        "${portal_dialog_file}" | sha256sum --check -
+done
+
+declare -A portal_explorer_files=(
+    ["${PORTAL_DIALOG_BUILD}/build64/programs/explorer/x86_64-windows/explorer.exe"]="${PORTAL_EXPLORER64_SHA256}"
+    ["${PORTAL_DIALOG_BUILD}/build32/programs/explorer/i386-windows/explorer.exe"]="${PORTAL_EXPLORER32_SHA256}"
+)
+for portal_explorer_file in "${!portal_explorer_files[@]}"; do
+    if [[ ! -f "${portal_explorer_file}" ]]; then
+        printf '缺少已验证的宿主文件管理器桥接模块：%s\n' \
+            "${portal_explorer_file}" >&2
+        exit 69
+    fi
+    printf '%s  %s\n' "${portal_explorer_files["${portal_explorer_file}"]}" \
+        "${portal_explorer_file}" | sha256sum --check -
+done
 
 install -d "${CACHE_ROOT}" "$(dirname -- "${BUILD_ROOT}")"
 download_verified "${ENGINE_URL}" "${ENGINE_DEB}" "${ENGINE_SHA256}"
@@ -214,7 +251,7 @@ fi
 printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
-build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v17-wine11-system-browser"
+build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v21-machine-file-associations"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -231,6 +268,7 @@ fi
 
 flatpak build \
     --bind-mount="/run/portal-wine=${PORTAL_WINE_FILES}" \
+    --bind-mount="/run/portal-dialog-build=${PORTAL_DIALOG_BUILD}" \
     --bind-mount="/run/deepin-engine=${engine_source}" \
     --bind-mount="/run/deepin-helper=${helper_source}" \
     --bind-mount="/run/deepin-runtime=${runtime_extract}" \
@@ -253,6 +291,30 @@ flatpak build \
             cp -a "${runtime_path}" /app/lib/
         done < <(find /run/portal-wine/lib -mindepth 1 -maxdepth 1 \
             ! -name i386-linux-gnu -print0)
+        # The retained Wine 11.0 runtime predates the local FileChooser patch.
+        # Overlay its matching PE/Unix comdlg32 pairs from the verified portal
+        # build; both 32-bit and 64-bit modules are required by WeCom.
+        install -m 0644 \
+            /run/portal-dialog-build/build64/dlls/comdlg32/x86_64-windows/comdlg32.dll \
+            /app/lib/wine/x86_64-windows/comdlg32.dll
+        install -m 0755 \
+            /run/portal-dialog-build/build64/dlls/comdlg32/comdlg32.so \
+            /app/lib/wine/x86_64-unix/comdlg32.so
+        install -m 0644 \
+            /run/portal-dialog-build/build32/dlls/comdlg32/i386-windows/comdlg32.dll \
+            /app/lib/wine/i386-windows/comdlg32.dll
+        install -m 0755 \
+            /run/portal-dialog-build/build32/dlls/comdlg32/comdlg32.so \
+            /app/lib/wine/i386-unix/comdlg32.so
+        # Keep Wine 11 Explorer intact except for /select requests. The
+        # patched PE files hand those requests to wecom-host-open while all
+        # desktop and ordinary Explorer behavior remains upstream Wine.
+        install -m 0644 \
+            /run/portal-dialog-build/build64/programs/explorer/x86_64-windows/explorer.exe \
+            /app/lib/wine/x86_64-windows/explorer.exe
+        install -m 0644 \
+            /run/portal-dialog-build/build32/programs/explorer/i386-windows/explorer.exe \
+            /app/lib/wine/i386-windows/explorer.exe
         install -d /app/bin \
             /app/share/wecom-deepin/adapter /app/share/wecom-deepin/official \
             /app/share/wecom-deepin/helper/gl-wine \
@@ -300,6 +362,10 @@ flatpak build \
             /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
         install -m 0755 /run/project/scripts/install-deepin-official-wecom.sh \
             /app/share/wecom-deepin/install-official-wecom.sh
+        install -m 0755 /run/project/scripts/configure-host-file-open.sh \
+            /app/share/wecom-deepin/configure-host-file-open.sh
+        install -m 0755 /run/project/scripts/wecom-host-open.sh \
+            /app/bin/wecom-host-open
         install -m 0755 /run/project/scripts/patch-wecom-cef.sh \
             /app/share/wecom-deepin/patch-wecom-cef.sh
         install -m 0755 /run/project/scripts/prepare-deepin-runtime.sh \
@@ -331,6 +397,10 @@ if [[ -f "${font_copyright_file}" ]]; then
         /app/share/doc/fonts-wqy-microhei/copyright
 fi
 
+# Compat.i386 and GL32 need a real parent directory in the committed /app.
+# Flatpak cannot synthesize it later because the application tree is read-only.
+install -d "${APP_DIR}/files/lib/i386-linux-gnu"
+
 if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
    [[ "$(<"${BUILD_ROOT}/finished")" != "${build_signature}" ]]; then
     gl_merge_dirs='vulkan/icd.d;glvnd/egl_vendor.d;egl/egl_external_platform.d;OpenCL/vendors;lib/dri;lib/d3d;lib/gbm;vulkan/explicit_layer.d;vulkan/implicit_layer.d;vdpau'
@@ -338,6 +408,7 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
         --command=wecom-deepin \
         --share=ipc \
         --share=network \
+        --talk-name=org.freedesktop.FileManager1 \
         --socket=x11 \
         --socket=pulseaudio \
         --device=dri \
@@ -363,6 +434,7 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
         --env=GTK_IM_MODULE=fcitx \
         --env=QT_IM_MODULE=fcitx \
         --env=ATTACH_FILE_DIALOG=1 \
+        --env=WINE_FORCE_PORTAL=1 \
         --env=PATH=/app/bin:/usr/bin \
         --env=LD_LIBRARY_PATH=/app/lib/deepin-compat:/app/lib \
         --env=WINEDLLPATH=/app/lib/wine \
