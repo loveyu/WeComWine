@@ -19,5 +19,14 @@ WECOM_CEF_STATUS_FILE="${WINEPREFIX}/.cef-compat.status" \
     /app/share/wecom-deepin/patch-wecom-cef.sh
 /app/bin/deepin-wine regedit /S \
     /app/share/wecom-deepin/adapter/wxworkweb.reg
+# CEF's Windows ANGLE backends cannot create a reliable child-window surface
+# under Wine: D3D11/D3D9 fail device creation and ANGLE OpenGL fails to set the
+# Wine window's pixel format.  Keep WebView on Chromium's software-compositing
+# path.  CEF already disables the renderer sandbox after its retry limit under
+# Wine; request that final mode directly so the first renderers survive.
 exec /app/bin/deepin-wine \
-    'C:\Program Files (x86)\WXWork\WXWork.exe' "$@"
+    'C:\Program Files (x86)\WXWork\WXWork.exe' \
+    --disable-gpu \
+    --disable-gpu-compositing \
+    --no-sandbox \
+    "$@"

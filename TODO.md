@@ -44,6 +44,9 @@
   用户服务，使 Flatpak 桌面入口直接启动时同样生效。
 - [x] Deepin 模式移除旧 Wine Flatpak 重复桌面入口，并在宿主服务和 Flatpak
   前缀两层阻止重复启动，避免同一登录状态短时出现两个企业微信窗口。
+- [x] Deepin 模式将 CEF 从 Wine 下失败的 ANGLE D3D11/D3D9 和无法设置窗口像素
+  格式的 ANGLE OpenGL 后端切换到已验证的软件合成，并跳过必然失败的 renderer
+  sandbox 重试。
 - [x] 回移 Wine X11 剪贴板格式注册修复，并增加 32 位图片/OLE 剪贴板探针。
 - [x] 补齐 RichEdit 粘贴静态图片时的 `IRichEditOleCallback::GetNewStorage`
   持久化路径，强校验探针已验证对象类别、存储和尺寸。

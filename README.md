@@ -166,6 +166,12 @@ Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重�
 集成安装器也会移除旧的“企业微信（Wine Flatpak）”入口，只保留 Deepin 官方包
 导出的桌面入口。
 
+Deepin Wine 下的企业微信 CEF 固定使用 `--disable-gpu` 与
+`--disable-gpu-compositing` 软件合成，绕开 Windows ANGLE 的 D3D11/D3D9 初始化
+失败和 ANGLE OpenGL 无法给 Wine 子窗口设置像素格式的问题。CEF 在 Wine 中原本
+会在 renderer sandbox 连续失败后自动降级为无 sandbox，启动入口直接使用该最终
+模式，避免首批 WebView renderer 在重试期间退出。
+
 默认启用任务栏窗口图标管理，只处理 KWin `_NET_CLIENT_LIST` 中 `WM_CLASS` 为
 `wxwork.exe` 的受管窗口，不修改托盘图标，也不清除企业微信用于消息提醒的
 `WM_HINTS`。管理器从随包图标生成标准 X11 多尺寸 `_NET_WM_ICON`，并写入 KDE

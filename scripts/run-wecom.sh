@@ -71,6 +71,19 @@ image_clipboard_bridge_pid=''
 stop_requested=0
 wecom_runtime_args=()
 
+# CEF's Windows ANGLE backends cannot create a reliable child-window surface
+# under Wine: D3D11/D3D9 fail device creation and ANGLE OpenGL fails to set the
+# Wine window's pixel format.  Keep WebView on Chromium's software-compositing
+# path.  CEF already ends up disabling its renderer sandbox after repeated
+# Wine failures, so request the stable final mode from the first renderer.
+if (( deepin_official_baseline == 1 )); then
+    wecom_runtime_args+=(
+        --disable-gpu
+        --disable-gpu-compositing
+        --no-sandbox
+    )
+fi
+
 # WeCom's bundled Chromium repeatedly respawns its GPU process when ANGLE
 # cannot create a D3D11 or D3D9 device under Wine.  Besides wasting CPU, the
 # restart storm has preceded reproducible stack-overflow crashes in the main
