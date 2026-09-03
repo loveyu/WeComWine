@@ -25,6 +25,15 @@ if [[ ! -s "${PROGRAM_FILE}" ]]; then
     exit 4
 fi
 
+# A direct launch from the Flatpak-exported desktop file does not own this
+# service's host lock.  Avoid starting another client against the same prefix.
+if flatpak ps --columns=application 2>/dev/null | \
+   grep -Fxq "${ACTIVE_FLATPAK_APP}"; then
+    write_status "${STATUS_FILE}" "already-running" \
+        "flatpak=${ACTIVE_FLATPAK_APP}"
+    exit 0
+fi
+
 program_windows="$(<"${PROGRAM_FILE}")"
 scale_factor="$(detect_system_scale_factor)"
 wine_dpi="$(scale_factor_to_wine_dpi "${scale_factor}")"

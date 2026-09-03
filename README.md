@@ -161,6 +161,11 @@ systemd override 中设置 `WECOM_MANAGE_TITLEBAR_OVERLAY=0` 关闭兼容处理�
 依赖宿主已有的 `xdotool`、`xprop`、`xwininfo` 和 coreutils `stdbuf`，缺失时
 自动降级，不阻止企业微信启动。
 
+Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重复点击桌面图标会
+直接复用当前运行状态，不会再次启动 `WXWork.exe`。Deepin runner 生效时，用户
+集成安装器也会移除旧的“企业微信（Wine Flatpak）”入口，只保留 Deepin 官方包
+导出的桌面入口。
+
 默认启用任务栏窗口图标管理，只处理 KWin `_NET_CLIENT_LIST` 中 `WM_CLASS` 为
 `wxwork.exe` 的受管窗口，不修改托盘图标，也不清除企业微信用于消息提醒的
 `WM_HINTS`。管理器从随包图标生成标准 X11 多尺寸 `_NET_WM_ICON`，并写入 KDE

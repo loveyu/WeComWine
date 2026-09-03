@@ -42,6 +42,8 @@
   主窗口同宽的 `override-redirect` ARGB 顶栏，仅在其主窗口位于前台时映射，
   避免残留最小化/最大化按钮截获 Chrome 等应用右上角点击；管理器已拆成独立
   用户服务，使 Flatpak 桌面入口直接启动时同样生效。
+- [x] Deepin 模式移除旧 Wine Flatpak 重复桌面入口，并在宿主服务和 Flatpak
+  前缀两层阻止重复启动，避免同一登录状态短时出现两个企业微信窗口。
 - [x] 回移 Wine X11 剪贴板格式注册修复，并增加 32 位图片/OLE 剪贴板探针。
 - [x] 补齐 RichEdit 粘贴静态图片时的 `IRichEditOleCallback::GetNewStorage`
   持久化路径，强校验探针已验证对象类别、存储和尺寸。
