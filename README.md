@@ -65,6 +65,7 @@ Portal 文件入口、外部浏览器和内置 CEF 网页已完成当前 Wine 11
 | `desktop/` | KDE/桌面环境启动入口 |
 | `icons/` | 企业微信桌面图标 |
 | `PACKAGING.md` | 独立包拆分、发布阻塞项和安全边界 |
+| `LAN_REPO.md` | 局域网 Flatpak 仓库发布、安装、更新和验证手册 |
 | `THIRD_PARTY.md` | 第三方来源、摘要和再分发边界 |
 
 ## 开发检查与安装
