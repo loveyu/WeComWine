@@ -174,6 +174,11 @@ Flatpak OpenURI Portal，在系统默认浏览器中打开。文件对话框使�
 Portal 构建中单独校验的 32/64 位 `comdlg32` PE/Unix 模块，避免把未完成构建目录
 中的旧无 Portal DLL 误装进单包。
 
+Deepin 官方适配包中的 32/64 位 `wininet.dll` 按固定摘要替换 Wine 11 对应的
+PE 模块，用于保留企业微信的 HTTPS 请求和连接回收兼容处理。该覆盖不包含
+Deepin Wine 10 的 `ntdll`、
+`kernelbase`、`user32`、图形模块或其他 `WINEPREDLL` 文件。
+
 企业微信具有独立的代理配置和连接路由，正式启动入口默认清除继承自宿主的
 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY` 等大小写环境变量，避免
 环境代理干扰消息长连接。确需让企业微信继承这些变量时，可设置

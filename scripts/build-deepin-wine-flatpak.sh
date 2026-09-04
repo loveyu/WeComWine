@@ -19,6 +19,8 @@ readonly HELPER_URL="https://pro-store-packages.uniontech.com/appstore/pool/apps
 readonly WECOM_ADAPTER_VERSION="5.0.0.6008deepin8"
 readonly WECOM_ADAPTER_SHA256="e1ec28e988d5823287dd83ce4715072375314d81af2df5ca5c8ce8f84553010b"
 readonly WECOM_ADAPTER_URL="https://pro-store-packages.uniontech.com/appstore/pool/appstore/c/com.qq.weixin.work.deepin/com.qq.weixin.work.deepin_5.0.0.6008deepin8_amd64.deb"
+readonly WECOM_ADAPTER_WININET32_SHA256="bb699d183a2f327d18f7fee78e4f51fdc5d3142a11c8e9cb85c005862f184a0c"
+readonly WECOM_ADAPTER_WININET64_SHA256="bb9c7af7ce26433c0cb0403c6bd23a094f02584ae7b5e9131e0a4e568368798e"
 readonly WECOM_VERSION="5.0.10.6025"
 readonly WECOM_INSTALLER_SHA256="f9b028420b84dda6888246516e8a1dddd3174eaeb3d8d930e8e04264a9cfa513"
 readonly WECOM_INSTALLER_URL="https://dldir1.qq.com/wework/work_weixin/WeCom_5.0.10.6025.exe"
@@ -243,6 +245,10 @@ for required_path in \
         exit 65
     fi
 done
+printf '%s  %s\n' "${WECOM_ADAPTER_WININET32_SHA256}" \
+    "${adapter_source}/dlls/i386-windows/wininet.dll" | sha256sum --check -
+printf '%s  %s\n' "${WECOM_ADAPTER_WININET64_SHA256}" \
+    "${adapter_source}/dlls/x86_64-windows/wininet.dll" | sha256sum --check -
 if ! 7z l "${WECOM_INSTALLER}" | \
     grep -F "FileVersion: ${WECOM_VERSION}" >/dev/null; then
     printf '腾讯官方安装包版本不是预期的 %s。\n' "${WECOM_VERSION}" >&2
@@ -251,7 +257,7 @@ fi
 printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
-build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v23-ignore-proxy-environment"
+build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v25-deepin-wininet-direct"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -265,6 +271,18 @@ if [[ ! -f "${APP_DIR}/metadata" ]]; then
         "${APP_DIR}" "${APP_ID}" \
         org.freedesktop.Sdk org.freedesktop.Platform "${RUNTIME_VERSION}"
 fi
+
+# flatpak build exposes pre-existing application directories as writable but
+# keeps runtime-owned parent directories read-only.  Declare every private
+# subtree outside the sandbox so clean builds do not depend on an old appdir.
+install -d \
+    "${APP_DIR}/files/lib/deepin-compat" \
+    "${APP_DIR}/files/lib/p7zip" \
+    "${APP_DIR}/files/share/doc/deepin-wine10-stable" \
+    "${APP_DIR}/files/share/doc/deepin-wine-helper" \
+    "${APP_DIR}/files/share/doc/fonts-wqy-microhei" \
+    "${APP_DIR}/files/share/fonts/truetype/wqy" \
+    "${APP_DIR}/files/share/wecom-deepin"
 
 flatpak build \
     --bind-mount="/run/portal-wine=${PORTAL_WINE_FILES}" \
@@ -315,6 +333,16 @@ flatpak build \
         install -m 0644 \
             /run/portal-dialog-build/build32/programs/explorer/i386-windows/explorer.exe \
             /app/lib/wine/i386-windows/explorer.exe
+        # The Wine loader searches its compiled-in DLL directory before
+        # WINEDLLPATH. Replace only the verified WinINet PE files from the
+        # official WeCom adapter; do not mix its Wine 10 ntdll, kernelbase,
+        # user32 or graphics modules into the Wine 11 runtime.
+        install -m 0644 \
+            /run/wecom-adapter/dlls/i386-windows/wininet.dll \
+            /app/lib/wine/i386-windows/wininet.dll
+        install -m 0644 \
+            /run/wecom-adapter/dlls/x86_64-windows/wininet.dll \
+            /app/lib/wine/x86_64-windows/wininet.dll
         install -d /app/bin \
             /app/share/wecom-deepin/adapter /app/share/wecom-deepin/official \
             /app/share/wecom-deepin/helper/gl-wine \
