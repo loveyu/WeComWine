@@ -10,6 +10,7 @@
 | 应用 ID | `io.github.loveyu.WeComWine.Deepin` |
 | Flatpak 分支 | `stable-25.08` |
 | 企业微信版本 | `5.0.10.6025` |
+| 打包版本 | `5.0.10.6025-20260904` |
 | 内部构建 repo | `~/.local/share/wecom-flatpak-poc/deepin-flatpak-repo` |
 | 对外 LAN repo | `~/.local/share/flatpak-lan/repo` |
 | HTTP 根目录 | `~/.local/share/flatpak-lan` |
@@ -21,6 +22,10 @@
 内部构建 repo 和对外 LAN repo 是两个独立 OSTree 仓库。完成
 `make deepin-flatpak-local` 并不代表局域网客户端已经能看到新版本，还需要将
 appdir 导出到 LAN repo 并更新仓库 summary。
+
+`stable-25.08` 是 Flatpak 分支和运行时兼容线，不是应用版本。应用展示版本由
+AppStream 提供，格式为“企业微信版本-打包日期”，例如
+`5.0.10.6025-20260904`。
 
 发布或安装前使用下面的命令确认本机到客户端的实际出口地址，并将后续命令中的
 `LAN_REPO_HOST` 替换为该地址：

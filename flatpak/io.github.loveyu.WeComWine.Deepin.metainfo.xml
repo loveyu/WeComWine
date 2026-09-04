@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>io.github.loveyu.WeComWine.Deepin</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <name>WeCom (Deepin compatibility package)</name>
+  <name xml:lang="zh-CN">企业微信（Deepin 兼容包）</name>
+  <summary>Run WeCom with the Deepin compatibility runtime</summary>
+  <summary xml:lang="zh-CN">使用 Deepin 兼容运行时运行企业微信</summary>
+  <developer id="io.github.loveyu">
+    <name>WeComWine maintainers</name>
+  </developer>
+  <url type="homepage">https://github.com/loveyu/WeComWine</url>
+  <description>
+    <p>
+      A private Flatpak package that combines the verified WeCom client with
+      its matching Deepin Wine compatibility runtime.
+    </p>
+    <p xml:lang="zh-CN">
+      私有 Flatpak 包，组合已验证的企业微信客户端和匹配的 Deepin Wine
+      兼容运行时。
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.loveyu.WeComWine.Deepin.desktop</launchable>
+  <provides>
+    <binary>wecom-deepin</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="5.0.10.6025-20260904" date="2026-09-04">
+      <description>
+        <p>Package WeCom 5.0.10.6025 with the verified Deepin runtime.</p>
+        <p xml:lang="zh-CN">使用已验证的 Deepin 运行时打包企业微信 5.0.10.6025。</p>
+      </description>
+    </release>
+  </releases>
+</component>

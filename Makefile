@@ -17,7 +17,17 @@ check:
 	@bash tests/wecom-proxy-environment.sh
 	@bash tests/deepin-first-launch.sh
 	@bash tests/install-user-integration.sh
-	@python3 -c 'from pathlib import Path; path = Path("scripts/manage-wecom-window-icon.py"); compile(path.read_text(), str(path), "exec")'
+	@if command -v appstreamcli >/dev/null 2>&1; then \
+		appstreamcli validate --no-net flatpak/io.github.loveyu.WeComWine.Deepin.metainfo.xml; \
+	fi
+	@tmp_catalog="$$(mktemp --suffix=.xml.gz)"; \
+	trap 'rm -f -- "$$tmp_catalog"' EXIT; \
+	python3 scripts/generate-appstream-catalog.py \
+		flatpak/io.github.loveyu.WeComWine.Deepin.metainfo.xml "$$tmp_catalog"; \
+	if command -v appstreamcli >/dev/null 2>&1; then \
+		appstreamcli validate --no-net "$$tmp_catalog"; \
+	fi
+	@python3 -c 'from pathlib import Path; paths = [Path("scripts/generate-appstream-catalog.py"), Path("scripts/manage-wecom-window-icon.py")]; [compile(path.read_text(), str(path), "exec") for path in paths]'
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 17
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
 		git ls-files | grep -Eiq '\.(7z|deb|exe|msi|dll|bundle|flatpak)$$'; then \

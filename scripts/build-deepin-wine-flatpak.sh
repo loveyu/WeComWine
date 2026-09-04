@@ -22,6 +22,9 @@ readonly WECOM_ADAPTER_URL="https://pro-store-packages.uniontech.com/appstore/po
 readonly WECOM_ADAPTER_WININET32_SHA256="bb699d183a2f327d18f7fee78e4f51fdc5d3142a11c8e9cb85c005862f184a0c"
 readonly WECOM_ADAPTER_WININET64_SHA256="bb9c7af7ce26433c0cb0403c6bd23a094f02584ae7b5e9131e0a4e568368798e"
 readonly WECOM_VERSION="5.0.10.6025"
+readonly PACKAGE_DATE="20260904"
+readonly PACKAGE_RELEASE_DATE="2026-09-04"
+readonly PACKAGE_VERSION="${WECOM_VERSION}-${PACKAGE_DATE}"
 readonly WECOM_INSTALLER_SHA256="f9b028420b84dda6888246516e8a1dddd3174eaeb3d8d930e8e04264a9cfa513"
 readonly WECOM_INSTALLER_URL="https://dldir1.qq.com/wework/work_weixin/WeCom_5.0.10.6025.exe"
 readonly FONT_VERSION="0.2.0-beta-3.1"
@@ -70,7 +73,7 @@ LIBXML2_DEB="${CACHE_ROOT}/libxml2_2.9.14+dfsg-1.3+rb2_amd64.deb"
 LIBICU74_DEB="${CACHE_ROOT}/libicu74_74.2-1deepin1_amd64.deb"
 PORTAL_WINE_FILES="${WECOM_PORTAL_WINE_FILES:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11/appdir/files}"
 PORTAL_DIALOG_BUILD="${WECOM_PORTAL_DIALOG_BUILD:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11}"
-BUNDLE_FILE="${ARTIFACT_DIR}/${APP_ID}-wine${PORTAL_WINE_VERSION}-deepin${WECOM_ADAPTER_VERSION}.flatpak"
+BUNDLE_FILE="${ARTIFACT_DIR}/${APP_ID}-${PACKAGE_VERSION}-x86_64.flatpak"
 
 require_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -110,7 +113,7 @@ download_verified() {
     mv "${partial_file}" "${output}"
 }
 
-for required_command in 7z curl dpkg-deb flatpak sha256sum; do
+for required_command in 7z curl dpkg-deb flatpak python3 sha256sum; do
     require_command "${required_command}"
 done
 
@@ -209,6 +212,7 @@ helper_extract="${extract_root}/helper"
 adapter_extract="${extract_root}/adapter"
 font_extract="${extract_root}/font"
 runtime_extract="${extract_root}/runtime"
+appstream_catalog="${extract_root}/${APP_ID}.xml.gz"
 install -d "${engine_extract}" "${helper_extract}" "${adapter_extract}" \
     "${font_extract}" "${runtime_extract}" \
     "${LOCAL_REPO}" "${ARTIFACT_DIR}"
@@ -254,6 +258,13 @@ if ! 7z l "${WECOM_INSTALLER}" | \
     printf '腾讯官方安装包版本不是预期的 %s。\n' "${WECOM_VERSION}" >&2
     exit 65
 fi
+if ! grep -Fq "<release version=\"${PACKAGE_VERSION}\" date=\"${PACKAGE_RELEASE_DATE}\">" \
+    "${PROJECT_DIR}/flatpak/${APP_ID}.metainfo.xml"; then
+    printf 'AppStream 版本与当前打包版本不一致：%s\n' "${PACKAGE_VERSION}" >&2
+    exit 65
+fi
+python3 "${PROJECT_DIR}/scripts/generate-appstream-catalog.py" \
+    "${PROJECT_DIR}/flatpak/${APP_ID}.metainfo.xml" "${appstream_catalog}"
 printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
@@ -267,12 +278,14 @@ project_payload_sha256="$(
         scripts/migrate-deepin-prefix-to-wine10.sh \
         scripts/install-deepin-official-wecom.sh \
         scripts/configure-host-file-open.sh \
+        scripts/generate-appstream-catalog.py \
         scripts/wecom-host-open.sh \
         scripts/patch-wecom-cef.sh \
         scripts/prepare-deepin-runtime.sh \
         scripts/run-deepin-package.sh \
         scripts/wecom-proxy-environment.sh \
         desktop/io.github.loveyu.WeComWine.Deepin.desktop \
+        flatpak/io.github.loveyu.WeComWine.Deepin.metainfo.xml \
         icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png | \
         sha256sum | awk '{print $1}'
 )"
@@ -313,6 +326,7 @@ flatpak build \
     --bind-mount="/run/wecom-adapter=${adapter_source}" \
     --bind-mount="/run/wecom-installer=${WECOM_INSTALLER}" \
     --bind-mount="/run/deepin-font=${font_source}" \
+    --bind-mount="/run/appstream-catalog=${appstream_catalog}" \
     --bind-mount="/run/project=${PROJECT_DIR}" \
     "${APP_DIR}" env LC_ALL=C LANG=C bash -lc '
         set -Eeuo pipefail
@@ -375,7 +389,8 @@ flatpak build \
             /app/share/doc/deepin-wine-helper \
             /app/share/doc/fonts-wqy-microhei \
             /app/lib/deepin-compat /app/lib/p7zip \
-            /app/share/fonts/truetype/wqy /app/share/applications \
+            /app/share/fonts/truetype/wqy /app/share/applications /app/share/metainfo \
+            /app/share/app-info/xmls /app/share/app-info/icons/flatpak/256x256 \
             /app/share/icons/hicolor/256x256/apps
         # Preserve the complete Deepin application adapter, including its
         # prefix template, WINEPREDLL overlay, registry and pre-run/update
@@ -431,8 +446,14 @@ flatpak build \
             /app/bin/wecom-proxy-environment.sh
         install -m 0644 /run/project/desktop/io.github.loveyu.WeComWine.Deepin.desktop \
             /app/share/applications/io.github.loveyu.WeComWine.Deepin.desktop
+        install -m 0644 /run/project/flatpak/io.github.loveyu.WeComWine.Deepin.metainfo.xml \
+            /app/share/metainfo/io.github.loveyu.WeComWine.Deepin.metainfo.xml
+        install -m 0644 /run/appstream-catalog \
+            /app/share/app-info/xmls/io.github.loveyu.WeComWine.Deepin.xml.gz
         install -m 0644 /run/project/icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png \
             /app/share/icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.Deepin.png
+        install -m 0644 /run/project/icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png \
+            /app/share/app-info/icons/flatpak/256x256/io.github.loveyu.WeComWine.Deepin.png
         # Prevent both explicit and automatic Wine debugger startup.  This is
         # a deliberate product-safety boundary for the WeCom account.
         rm -f /app/bin/winedbg /app/bin/winegdb \
@@ -505,8 +526,8 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
 fi
 printf '%s\n' "${build_signature}" > "${BUILD_ROOT}/signature"
 
-flatpak build-export --disable-fsync \
-    --subject="Wine ${PORTAL_WINE_VERSION} with Deepin WeCom adapter ${WECOM_ADAPTER_VERSION} and official WeCom ${WECOM_VERSION}" \
+flatpak build-export --disable-fsync --update-appstream \
+    --subject="WeCom ${PACKAGE_VERSION} with Deepin Wine ${ENGINE_VERSION}" \
     "${LOCAL_REPO}" "${APP_DIR}" "${APP_BRANCH}"
 
 repo_url="file://${LOCAL_REPO}"
