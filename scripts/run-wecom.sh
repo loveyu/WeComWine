@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "${SCRIPT_DIR}/common.sh"
+source "${SCRIPT_DIR}/wecom-proxy-environment.sh"
 
 STATUS_FILE="${STATE_DIR}/app.status"
 LOCK_FILE="${STATE_DIR}/app.lock"

@@ -174,6 +174,11 @@ Flatpak OpenURI Portal，在系统默认浏览器中打开。文件对话框使�
 Portal 构建中单独校验的 32/64 位 `comdlg32` PE/Unix 模块，避免把未完成构建目录
 中的旧无 Portal DLL 误装进单包。
 
+企业微信具有独立的代理配置和连接路由，正式启动入口默认清除继承自宿主的
+`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY` 等大小写环境变量，避免
+环境代理干扰消息长连接。确需让企业微信继承这些变量时，可设置
+`FORCE_ENABLE_PROXY_WECOM=1`；同时接受 `true`、`yes` 或 `on`。
+
 本地 Deepin 包显式开放宿主 `home`，用于在文件选择器和文件管理器中浏览完整的
 用户目录；该路径中的文件不再受 Document Portal 单文件授权隔离。
 该权限范围较大，仅适用于当前受信任的企业微信专用包。访问其他未开放目录时，

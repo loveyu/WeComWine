@@ -2,6 +2,9 @@
 
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${SCRIPT_DIR}/wecom-proxy-environment.sh"
+
 export WINEPREFIX="${WINEPREFIX:-/var/data/wine-wecom-deepin}"
 install -d "${WINEPREFIX}"
 exec 9>"${WINEPREFIX}/.wecom-launch.lock"
