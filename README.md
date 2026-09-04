@@ -4,10 +4,11 @@
 Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立包的源码项目，
 不包含企业微信安装包、Wine 前缀、用户数据或构建缓存。
 
-现有部署已在 Debian 13、KDE Plasma 6 Wayland/XWayland、Fcitx5 和 Wine 11.0
-环境验证；企业微信首次安装基线为 5.0.10.6015，当前已验证内置升级到
-5.0.10.6025。正式 Wine 前缀保持可写，允许企业微信继续安装组件并通过内置
-更新器升级到新版本。
+现有部署已在 Debian 13、KDE Plasma 6 Wayland/XWayland 和 Fcitx5 环境验证；
+本地 Deepin 单包使用 ABI 匹配的 Deepin Wine 10.14 与官方企业微信适配层，
+独立 Portal runner 继续使用 Wine 11。企业微信首次安装基线为 5.0.10.6015，
+当前已验证内置升级到 5.0.10.6025。正式 Wine 前缀保持可写，允许企业微信继续
+安装组件并通过内置更新器升级到新版本。
 仓库构建目标已跟进 Wine 11.16，完整 runner 构建和登录态回归仍单独记录。
 
 ## 已验证能力
@@ -166,18 +167,16 @@ Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重�
 集成安装器也会移除旧的“企业微信（Wine Flatpak）”入口，只保留 Deepin 官方包
 导出的桌面入口。
 
-当前本机 Deepin Flatpak 保留 Deepin 官方企业微信代码包、适配资源、字体和
-`deepin-wine-helper` 文件，但运行引擎切换为已验证的 Wine 11.0，并且不加载仅适用
-于 Deepin Wine 10 的 `WINEPREDLL`/`renderer=gdi` 覆盖。企业微信 CEF 只传入
-`--disable-gpu` 使用软件渲染；外部 HTTP/HTTPS 链接由 `winebrowser.exe` 转交
-Flatpak OpenURI Portal，在系统默认浏览器中打开。文件对话框使用 Wine 11.16
-Portal 构建中单独校验的 32/64 位 `comdlg32` PE/Unix 模块，避免把未完成构建目录
-中的旧无 Portal DLL 误装进单包。
+当前本机 Deepin Flatpak 完整携带 Deepin Wine 10.14、官方企业微信代码包、
+`WINEPREDLL` 适配目录、字体和所需 `deepin-wine-helper` 资源。企业微信进程使用
+整套 ABI 匹配的 Deepin 引擎和适配模块；包内仍保留 Wine 11 文件，但不把两代
+`user32`、`win32u` 或 `winex11` 模块混合加载。实测混合窗口栈会触发 Wine
+user-driver 版本不匹配或 USER 锁断言，而完整 Deepin 引擎可将
+`SearchResultWindow2` 从 1×1 未映射状态正确映射为搜索结果窗口。
 
-Deepin 官方适配包中的 32/64 位 `wininet.dll` 按固定摘要替换 Wine 11 对应的
-PE 模块，用于保留企业微信的 HTTPS 请求和连接回收兼容处理。该覆盖不包含
-Deepin Wine 10 的 `ntdll`、
-`kernelbase`、`user32`、图形模块或其他 `WINEPREDLL` 文件。
+企业微信 CEF 继续传入 `--disable-gpu` 使用软件渲染。独立 Wine 11 Portal runner
+仍保留固定摘要校验的 32/64 位 `comdlg32` 和 Explorer 补丁；Deepin 单包切回完整
+Wine 10 后，文件选择、外部链接、打开附件所在目录和内置更新需要重新做一轮回归。
 
 企业微信具有独立的代理配置和连接路由，正式启动入口默认清除继承自宿主的
 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY` 等大小写环境变量，避免
@@ -193,11 +192,11 @@ Deepin Wine 10 的 `ntdll`、
 点击收到的常见办公文档、压缩包、图片、音视频或文本附件时，前缀中的
 `WeCom.HostOpen` 文件关联会把文件交给 `winebrowser.exe`，再经 Flatpak
 OpenURI Portal 使用宿主系统默认应用打开。关联同时写入该专用前缀的用户和
-机器 Classes 视图，避免 Wine 11 中预置的 `pngfile` 或空 ZIP ProgID 覆盖用户关联。
+机器 Classes 视图，避免预置的 `pngfile` 或空 ZIP ProgID 覆盖用户关联。
 可执行文件和脚本类型不会注册到
 该关联。
 
-企业微信调用 `explorer.exe /select` 定位收到的附件时，Wine 11 Explorer 的
+独立 Wine 11 Portal runner 处理 `explorer.exe /select` 时，其 Explorer
 定制分支会把前缀内的 `C:` 路径映射到宿主可见的 Flatpak 数据目录，并将 `Z:`
 路径中的 Document Portal 授权 ID 反查为原始宿主文件，再交给
 `org.freedesktop.FileManager1.ShowItems`；由当前桌面的默认文件管理器打开目录并
@@ -205,9 +204,10 @@ OpenURI Portal 使用宿主系统默认应用打开。关联同时写入该专�
 元数据或 FileManager1 服务时，使用 `xdg-open` 回退。
 `/desktop` 和其他 Explorer 参数仍使用 Wine 原实现。
 
-首次从旧 Deepin Wine 10 前缀启动时会原位迁移 Wine 系统文件和注册表，同时保留
-登录数据、文泉驿微米黑字体及可恢复的旧 `system32`/`syswow64` 目录备份。迁移和
-正常启动均不调用 WineDbg，也不会自动打开聊天或链接。
+Deepin 单包启动时只把 Wine 迁移生成的内置模块链接切回包内
+`/app/deepin-wine10-stable`，保留登录数据、注册表和历史
+`system32`/`syswow64` 备份。迁移和正常启动均不调用 WineDbg，也不会自动打开
+聊天或链接。
 
 默认启用任务栏窗口图标管理，只处理 KWin `_NET_CLIENT_LIST` 中 `WM_CLASS` 为
 `wxwork.exe` 的受管窗口，不修改托盘图标，也不清除企业微信用于消息提醒的

@@ -8,6 +8,7 @@ readonly engine_marker="${WINEPREFIX}/.wine-engine"
 readonly engine_version="wine-11.0-portal"
 readonly windows_dir="${WINEPREFIX}/drive_c/windows"
 readonly backup_dir="${WINEPREFIX}/.wine11-migration-backup"
+readonly wine10_backup_dir="${WINEPREFIX}/.wine10-migration-backup"
 readonly font_source="/app/share/fonts/truetype/wqy/wqy-microhei.ttc"
 
 remove_legacy_renderer_override() {
@@ -60,6 +61,25 @@ remap_legacy_builtin_links() {
 if [[ -f "${engine_marker}" ]] && \
    [[ "$(<"${engine_marker}")" == "${engine_version}" ]]; then
     remove_legacy_renderer_override
+    exit 0
+fi
+
+# The complete Deepin Wine 10 switch keeps an exact copy of the preceding
+# Wine 11 system directories.  Restore that copy before entering the original
+# first-time migration path; the historical Deepin 10 backup directories can
+# then remain untouched.
+if [[ -f "${engine_marker}" ]] && \
+   [[ "$(<"${engine_marker}")" == "deepin-wine-10.14" ]] && \
+   [[ -d "${wine10_backup_dir}/system32" ]] && \
+   [[ -d "${wine10_backup_dir}/syswow64" ]] && \
+   [[ -f "${wine10_backup_dir}/wine-engine" ]]; then
+    /app/deepin-wine10-stable/bin/wineserver -k >/dev/null 2>&1 || true
+    rm -rf -- "${windows_dir}/system32" "${windows_dir}/syswow64"
+    cp -a "${wine10_backup_dir}/system32" "${windows_dir}/system32"
+    cp -a "${wine10_backup_dir}/syswow64" "${windows_dir}/syswow64"
+    cp -a "${wine10_backup_dir}/wine-engine" "${engine_marker}"
+    remove_legacy_renderer_override
+    printf '企业微信前缀已恢复到 %s。\n' "${engine_version}"
     exit 0
 fi
 

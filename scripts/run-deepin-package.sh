@@ -15,7 +15,7 @@ fi
 
 /app/share/wecom-deepin/initialize-prefix.sh
 /app/share/wecom-deepin/install-official-wecom.sh
-/app/share/wecom-deepin/migrate-prefix-to-wine11.sh
+/app/share/wecom-deepin/migrate-prefix-to-wine10.sh
 /app/share/wecom-deepin/configure-host-file-open.sh
 /app/share/wecom-deepin/prepare-runtime.sh
 WECOM_CEF_STANDALONE=1 \

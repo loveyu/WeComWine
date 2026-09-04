@@ -83,20 +83,17 @@ awk '
 ' "${prepare_prefix}/system.reg" > "${nodebug_registry}"
 mv "${nodebug_registry}" "${prepare_prefix}/system.reg"
 
-# The official prefix was built for /opt/deepin-wine10-stable. The combined
-# Flatpak keeps the Deepin application payload but installs Wine builtins under
-# /app/lib/wine, so relocate only those builtin symlinks. c:, z: and device
-# mappings keep their original targets.
+# The official prefix was built for /opt/deepin-wine10-stable.  Keep its
+# builtin links on the complete engine shipped at the matching Flatpak path.
+# c:, z: and device mappings keep their original targets.
 while IFS= read -r -d '' link_path; do
     link_target="$(readlink -- "${link_path}")"
     case "${link_target}" in
         /opt/deepin-wine10-stable/*)
-            ln -sfn "/app/${link_target#/opt/deepin-wine10-stable/}" \
+            ln -sfn "/app/deepin-wine10-stable/${link_target#/opt/deepin-wine10-stable/}" \
                 "${link_path}"
             ;;
         /app/deepin-wine10-stable/*)
-            ln -sfn "/app/${link_target#/app/deepin-wine10-stable/}" \
-                "${link_path}"
             ;;
     esac
 done < <(find "${prepare_prefix}" -type l -print0)

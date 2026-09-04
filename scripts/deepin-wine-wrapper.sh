@@ -2,7 +2,8 @@
 
 set -Eeuo pipefail
 
-readonly engine_root="/app"
+readonly engine_root="/app/deepin-wine10-stable"
+readonly adapter_dll_root="/app/share/wecom-deepin/adapter/dlls"
 
 # This package is intentionally a normal-mode runner.  The debugger binaries
 # are also removed while the Flatpak is assembled, but reject explicit debug
@@ -16,12 +17,12 @@ case "${1:-}" in
 esac
 
 export PATH="${engine_root}/bin:${PATH}"
-export LD_LIBRARY_PATH="/app/lib/deepin-compat:/app/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+export LD_LIBRARY_PATH="${engine_root}/lib:/app/lib/deepin-compat:/app/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 export WINEDLLPATH="${engine_root}/lib/wine"
-# The Deepin WINEPREDLL overlay is retained in the package for compatibility
-# reference, but it targets Deepin Wine 10 and must not override Wine 11's
-# matching builtins.
-unset WINEPREDLL
+# Load the complete official application overlay only with its ABI-matched
+# Deepin Wine 10 engine.  In particular, user32, win32u and winex11 must stay
+# on the same engine version for WeCom popup windows to be mapped correctly.
+export WINEPREDLL="${adapter_dll_root}"
 export ATTACH_FILE_DIALOG=1
 export WINE_FORCE_PORTAL="${WINE_FORCE_PORTAL:-1}"
 export WINEPREFIX="${WINEPREFIX:-/var/data/wine-wecom-deepin}"

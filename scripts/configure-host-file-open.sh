@@ -30,20 +30,20 @@ fi
 # machine classes hive as well as the per-user hive.
 # Version 1 accidentally escaped the shell variables after the registry path
 # separator. Remove those literal keys before writing the corrected entries.
-/app/bin/wine reg.exe delete 'HKCU\Software\Classes${progid}' /f \
+/app/bin/deepin-wine reg.exe delete 'HKCU\Software\Classes${progid}' /f \
     >/dev/null 2>&1 || true
-/app/bin/wine reg.exe delete 'HKCU\Software\Classes${extension}' /f \
+/app/bin/deepin-wine reg.exe delete 'HKCU\Software\Classes${extension}' /f \
     >/dev/null 2>&1 || true
 
 for classes_key in "${user_classes_key}" "${machine_classes_key}"; do
-    /app/bin/wine reg.exe add \
+    /app/bin/deepin-wine reg.exe add \
         "${classes_key}\\${progid}" \
         /ve /t REG_SZ /d '宿主系统默认应用' /f >/dev/null
-    /app/bin/wine reg.exe add \
+    /app/bin/deepin-wine reg.exe add \
         "${classes_key}\\${progid}\\shell\\open\\command" \
         /ve /t REG_SZ /d "${open_command}" /f >/dev/null
 done
-/app/bin/wine reg.exe add \
+/app/bin/deepin-wine reg.exe add \
     'HKCU\Software\Wine\WineBrowser' \
     /v Browsers /t REG_SZ /d "${browser_commands}" /f >/dev/null
 
@@ -58,11 +58,11 @@ for extension in \
     .mp4 .mkv .avi .mov .webm .wmv \
     .eml .ics .json .xml .html .htm; do
     for classes_key in "${user_classes_key}" "${machine_classes_key}"; do
-        /app/bin/wine reg.exe add \
+        /app/bin/deepin-wine reg.exe add \
             "${classes_key}\\${extension}" \
             /ve /t REG_SZ /d "${progid}" /f >/dev/null
     done
 done
 
-/app/bin/wineserver --wait
+/app/deepin-wine10-stable/bin/wineserver --wait
 printf '%s\n' "${association_version}" > "${marker}"

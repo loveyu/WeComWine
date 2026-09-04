@@ -234,12 +234,12 @@ flatpak_wine_scaled() {
     # Keep the registry update and WeCom in one Flatpak/wineserver lifetime.
     # Separate Flatpak invocations can race while saving the shared prefix.
     if [[ "${ACTIVE_FLATPAK_APP}" == "${DEEPIN_FLATPAK_APP}" ]]; then
-        # The existing Deepin prefix still contains Wine 10 system files on
-        # its first Wine 11 launch. Migrate before even the DPI reg.exe call;
-        # otherwise Wine 11 cannot load kernel32.dll from the old prefix.
+        # Keep registry setup and the application on the same Deepin Wine 10
+        # wineserver.  Mixing a Wine 11 reg.exe process into this prefix can
+        # load a different user-driver ABI before WeCom starts.
         flatpak_wine sh -c '
-            /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
-            wine reg.exe add "HKCU\Control Panel\Desktop" \
+            /app/share/wecom-deepin/migrate-prefix-to-wine10.sh
+            /app/bin/deepin-wine reg.exe add "HKCU\Control Panel\Desktop" \
                 /v LogPixels /t REG_DWORD /d "$1" /f >/dev/null
             shift
             exec "$@"

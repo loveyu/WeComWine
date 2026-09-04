@@ -68,7 +68,7 @@ source "${SCRIPT_DIR}/common.sh"
 write_status "${STATUS_FILE}" "initialize-official-prefix" "${DEEPIN_WINEPREFIX_HOST}"
 flatpak_wine sh /app/share/wecom-deepin/initialize-prefix.sh
 flatpak_wine sh /app/share/wecom-deepin/install-official-wecom.sh
-flatpak_wine sh /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
+flatpak_wine sh /app/share/wecom-deepin/migrate-prefix-to-wine10.sh
 
 write_status "${STATUS_FILE}" "prepared" \
     "runner=${DEEPIN_FLATPAK_APP},prefix=${DEEPIN_WINEPREFIX_HOST}"

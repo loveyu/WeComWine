@@ -182,7 +182,13 @@ FLATPAK_INSTANCE_ID_FD=8 \
         if has_update_package; then
             update_pending=1
         fi
-        wine "$@"
+        wine_command=wine
+        wineserver_command=wineserver
+        if [ -x /app/deepin-wine10-stable/bin/wine ]; then
+            wine_command=/app/bin/deepin-wine
+            wineserver_command=/app/deepin-wine10-stable/bin/wineserver
+        fi
+        "${wine_command}" "$@"
         wine_status="$?"
 
         # WeCom exits its main process before the in-prefix updater has
@@ -192,7 +198,7 @@ FLATPAK_INSTANCE_ID_FD=8 \
            { [ "${update_pending}" -eq 1 ] || has_update_package; }; then
             printf "%s waiting for WeCom updater to finish\n" \
                 "$(date --iso-8601=seconds)"
-            timeout --foreground 15m wineserver -w || true
+            timeout --foreground 15m "${wineserver_command}" -w || true
         fi
         exit "${wine_status}"
     ' sh "${program_windows}" "${wecom_runtime_args[@]}" 9>&- &

@@ -14,22 +14,21 @@
 当前本机实际交付使用 `io.github.loveyu.WeComWine.Deepin` 单一 Flatpak，不再
 安装独立 Wine 或 RichEdit 应用。它完整携带 Deepin/统信官方企业微信包
 `5.0.0.6008deepin8` 的适配目录、`files.7z`、预制前缀、原生 RichEdit、注册表和
-辅助文件，并在同一前缀内安装腾讯官方企业微信 5.0.10.6025。运行引擎使用已验证
-的 Wine 11.0；Deepin Wine 10 引擎只作为来源校验，不进入运行路径，针对旧引擎的
-`WINEPREDLL` 和 `renderer=gdi` 覆盖也不激活。
+辅助文件，并在同一前缀内安装腾讯官方企业微信 5.0.10.6025。企业微信运行路径
+使用完整 Deepin Wine 10.14 和官方 `WINEPREDLL` 适配层；Wine 11 文件仍保留在
+单包中，但不与 Wine 10 的窗口栈混合加载。
 
 Flatpak 同时封装文泉驿微米黑字体、`deepin-wine-helper` 资源、7z 与所需原生库
 ABI；所有 WineDbg 入口在构建和前缀迁移时移除，禁止以调试模式运行。HTTP/HTTPS
-链接经 Wine 11 的 `winebrowser.exe` 和 Flatpak OpenURI Portal 交给系统默认浏览器。
+链接仍由 `winebrowser.exe` 和 Flatpak OpenURI Portal 交给系统默认浏览器。
 收到的常见非可执行附件也通过前缀内的 `WeCom.HostOpen` 关联交给同一 OpenURI
 Portal；专用前缀的用户/机器 Classes 视图保持一致，避免 Wine 11 预置关联覆盖后
 无响应或弹出 Wine 的“打开方式”窗口。
-Wine 11 的 32/64 位 `explorer.exe` 仅对 `/select` 增加宿主 FileManager1 转发，
+包内保留的 Wine 11 32/64 位 `explorer.exe` 对 `/select` 增加宿主 FileManager1 转发，
 支持前缀 `C:` 附件，并将 Document Portal `Z:` 路径还原为宿主原文件，使文件
 管理器能够显示完整目录；其他参数保留 Wine 原行为。
-文件与文件夹选择使用固定摘要校验的 Wine 11.16 Portal `comdlg32` 32/64 位 PE 与
-Unix 模块；构建脚本拒绝接受只有 `portal-build` 目录名、实际却未包含 Portal
-实现的旧 DLL。
+独立 Portal runner 使用固定摘要校验的 Wine 11.16 `comdlg32` 32/64 位 PE 与 Unix
+模块；Deepin 单包的企业微信进程使用官方 Wine 10 适配模块，两套 ABI 不混装。
 Deepin 单包声明 `--filesystem=home`，使企业微信能够直接浏览完整用户目录；这是
 本地受信任部署的显式宽权限配置，不假定其他机器存在 `/data`。未开放位置仍由
 XDG Desktop Portal 系统选择器按次授权，不回退到 Wine 文件选择器；打开所在
@@ -42,9 +41,9 @@ XDG Desktop Portal 系统选择器按次授权，不回退到 Wine 文件选择�
 避免覆盖其他应用右上角。
 
 预制前缀中指向 `/opt/deepin-wine10-stable` 的 Wine 内置模块链接会映射到
-`/app/lib/wine`，随后由 `wineboot -u` 完成 Wine 11 原位迁移；这不修改腾讯程序
-文件。Flatpak 沙箱仍声明 `--allow=multiarch` 并启用 i386 兼容/GL 扩展，供企业
-微信 32 位主程序与 64 位辅助组件共同运行。
+`/app/deepin-wine10-stable`；从旧 Wine 11 单包切回时也只重写这些生成的符号链接，
+不修改腾讯程序或用户数据。Flatpak 沙箱仍声明 `--allow=multiarch` 并启用 i386
+兼容/GL 扩展，供企业微信 32 位主程序与 64 位辅助组件共同运行。
 
 腾讯企业微信安装包由目标机器根据固定 HTTPS URL 下载并校验 SHA-256，不能进入
 Git、源码归档、公开 Flatpak 仓库或公开发行附件；上述本机私有 Deepin 测试包是
@@ -75,7 +74,7 @@ make deepin-flatpak-local
 - `make flatpak-bundles` 从已构建 OSTree 仓库导出主 Flatpak；设置
   `WECOM_RICHEDIT_DLL=/secure/path/riched20.dll` 时同时生成私有 RichEdit 扩展。
 - `make deepin-flatpak-local` 从 Deepin/统信官方应用商店下载并校验 Deepin 来源
-  包，复用固定摘要的 Wine 11.0 运行文件，并校验腾讯官方企业微信 5.0.10.6025
+  包，携带固定摘要的完整 Deepin Wine 10.14 引擎，并校验腾讯官方企业微信 5.0.10.6025
   安装包，生成、安装独立
   应用 ID 的本地测试 Flatpak。生成物位于
   `artifacts/deepin-private/`，含官方适配二进制，仅限本机测试，不进入公开 CI、

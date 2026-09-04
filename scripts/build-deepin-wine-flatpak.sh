@@ -258,7 +258,7 @@ printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
 deepin_desktop_sha256="$(sha256sum "${PROJECT_DIR}/desktop/${APP_ID}.desktop" | awk '{print $1}')"
-build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:${deepin_desktop_sha256}:normal-mode-v26-desktop-keywords"
+build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:${deepin_desktop_sha256}:normal-mode-v27-deepin10-runtime"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -277,6 +277,7 @@ fi
 # keeps runtime-owned parent directories read-only.  Declare every private
 # subtree outside the sandbox so clean builds do not depend on an old appdir.
 install -d \
+    "${APP_DIR}/files/deepin-wine10-stable" \
     "${APP_DIR}/files/lib/deepin-compat" \
     "${APP_DIR}/files/lib/p7zip" \
     "${APP_DIR}/files/share/doc/deepin-wine10-stable" \
@@ -310,6 +311,11 @@ flatpak build \
             cp -a "${runtime_path}" /app/lib/
         done < <(find /run/portal-wine/lib -mindepth 1 -maxdepth 1 \
             ! -name i386-linux-gnu -print0)
+        # Keep Wine 11 available for the portal-specific helper paths, but run
+        # WeCom itself with the complete ABI-matched Deepin Wine 10 engine.
+        # The official adapter window stack cannot be mixed into Wine 11: its
+        # Unix user-driver ABI is older and fails during desktop creation.
+        cp -a /run/deepin-engine/. /app/deepin-wine10-stable/
         # The retained Wine 11.0 runtime predates the local FileChooser patch.
         # Overlay its matching PE/Unix comdlg32 pairs from the verified portal
         # build; both 32-bit and 64-bit modules are required by WeCom.
@@ -389,6 +395,8 @@ flatpak build \
             /app/share/wecom-deepin/initialize-prefix.sh
         install -m 0755 /run/project/scripts/migrate-deepin-prefix-to-wine11.sh \
             /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
+        install -m 0755 /run/project/scripts/migrate-deepin-prefix-to-wine10.sh \
+            /app/share/wecom-deepin/migrate-prefix-to-wine10.sh
         install -m 0755 /run/project/scripts/install-deepin-official-wecom.sh \
             /app/share/wecom-deepin/install-official-wecom.sh
         install -m 0755 /run/project/scripts/configure-host-file-open.sh \
@@ -411,7 +419,11 @@ flatpak build \
         # a deliberate product-safety boundary for the WeCom account.
         rm -f /app/bin/winedbg /app/bin/winegdb \
             /app/lib/wine/i386-windows/winedbg.exe \
-            /app/lib/wine/x86_64-windows/winedbg.exe
+            /app/lib/wine/x86_64-windows/winedbg.exe \
+            /app/deepin-wine10-stable/bin/winedbg \
+            /app/deepin-wine10-stable/bin/winegdb \
+            /app/deepin-wine10-stable/lib/wine/i386-windows/winedbg.exe \
+            /app/deepin-wine10-stable/lib/wine/x86_64-windows/winedbg.exe
     '
 
 copyright_file="${engine_extract}/usr/share/doc/deepin-wine10-stable/copyright"
