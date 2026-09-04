@@ -6,8 +6,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "${SCRIPT_DIR}/wecom-proxy-environment.sh"
 
 export WINEPREFIX="${WINEPREFIX:-/var/data/wine-wecom-deepin}"
-install -d "${WINEPREFIX}"
-exec 9>"${WINEPREFIX}/.wecom-launch.lock"
+exec 9>"${WINEPREFIX}.launch.lock"
 if ! flock -n 9; then
     printf '企业微信已在该 Deepin 前缀中运行，忽略重复启动。\n' >&2
     exit 0

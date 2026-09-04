@@ -11,8 +11,23 @@ DESKTOP_FILE="io.github.loveyu.WeComWine.desktop"
 ICON_FILE="io.github.loveyu.WeComWine.png"
 RUNNER_STATE_FILE="${WECOM_STATE_DIR:-${XDG_STATE_HOME}/wecom-flatpak-poc}/runner.app"
 DEEPIN_FLATPAK_APP="io.github.loveyu.WeComWine.Deepin"
+DEEPIN_DESKTOP_FILE="${DEEPIN_FLATPAK_APP}.desktop"
 
 install -d "${APPLICATION_DIR}"
+
+# Early Deepin integration copied the Flatpak desktop file into the
+# higher-priority user applications directory. Remove only a file that can be
+# identified as our Flatpak launcher so the current exported entry (including
+# updated keywords) becomes authoritative.
+deepin_desktop_path="${APPLICATION_DIR}/${DEEPIN_DESKTOP_FILE}"
+if [[ -f "${deepin_desktop_path}" ]] && \
+   grep -Fxq "X-Flatpak=${DEEPIN_FLATPAK_APP}" "${deepin_desktop_path}" && \
+   grep -Eq '^Exec=.*/flatpak run .*io\.github\.loveyu\.WeComWine\.Deepin([[:space:]]|$)' \
+       "${deepin_desktop_path}"; then
+    rm -f -- "${deepin_desktop_path}"
+    printf '已移除覆盖 Flatpak 导出项的旧 Deepin 桌面入口。\n'
+fi
+
 active_runner=''
 if [[ -s "${RUNNER_STATE_FILE}" ]]; then
     active_runner="$(<"${RUNNER_STATE_FILE}")"

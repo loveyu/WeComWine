@@ -15,6 +15,8 @@ check:
 	@bash -n scripts/install-release.sh.in
 	@bash tests/wecom-host-open.sh
 	@bash tests/wecom-proxy-environment.sh
+	@bash tests/deepin-first-launch.sh
+	@bash tests/install-user-integration.sh
 	@python3 -c 'from pathlib import Path; path = Path("scripts/manage-wecom-window-icon.py"); compile(path.read_text(), str(path), "exec")'
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 17
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \

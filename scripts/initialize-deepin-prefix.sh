@@ -9,13 +9,28 @@ readonly archive="/app/share/wecom-deepin/adapter/files.7z"
 readonly expected_exe_sha256="477ac04a7e63d915f44702861f557336528dbef2060b18b8a7b9367fd9da0654"
 readonly program_relative="drive_c/Program Files (x86)/WXWork/WXWork.exe"
 readonly marker="${WINEPREFIX}/.deepin-wecom-package"
+readonly legacy_lock="${WINEPREFIX}/.wecom-launch.lock"
 
 if [[ -f "${marker}" ]] && [[ "$(<"${marker}")" == "${package_version}" ]] && \
    [[ -f "${WINEPREFIX}/${program_relative}" ]]; then
     exit 0
 fi
 
-if [[ -e "${WINEPREFIX}" ]]; then
+# Versions before the external launch lock fix could leave a new prefix with
+# only an empty lock file. Remove exactly that incomplete state; any other
+# entry remains protected by the refusal below.
+if [[ -d "${WINEPREFIX}" ]]; then
+    unexpected_entry="$(find -P "${WINEPREFIX}" -mindepth 1 -maxdepth 1 \
+        ! -name '.wecom-launch.lock' -print -quit)"
+    if [[ -z "${unexpected_entry}" ]] && \
+       { [[ ! -e "${legacy_lock}" && ! -L "${legacy_lock}" ]] || \
+         [[ -f "${legacy_lock}" && ! -L "${legacy_lock}" && ! -s "${legacy_lock}" ]]; }; then
+        rm -f -- "${legacy_lock}"
+        rmdir -- "${WINEPREFIX}"
+    fi
+fi
+
+if [[ -e "${WINEPREFIX}" || -L "${WINEPREFIX}" ]]; then
     printf 'Deepin 企业微信前缀已存在但不是完整的 %s：%s\n' \
         "${package_version}" "${WINEPREFIX}" >&2
     printf '为避免混用其他安装包，拒绝覆盖。\n' >&2

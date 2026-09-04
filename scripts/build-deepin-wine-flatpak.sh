@@ -257,8 +257,26 @@ fi
 printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
-deepin_desktop_sha256="$(sha256sum "${PROJECT_DIR}/desktop/${APP_ID}.desktop" | awk '{print $1}')"
-build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:${deepin_desktop_sha256}:normal-mode-v27-deepin10-runtime"
+project_payload_sha256="$(
+    cd "${PROJECT_DIR}"
+    sha256sum \
+        scripts/build-deepin-wine-flatpak.sh \
+        scripts/deepin-wine-wrapper.sh \
+        scripts/initialize-deepin-prefix.sh \
+        scripts/migrate-deepin-prefix-to-wine11.sh \
+        scripts/migrate-deepin-prefix-to-wine10.sh \
+        scripts/install-deepin-official-wecom.sh \
+        scripts/configure-host-file-open.sh \
+        scripts/wecom-host-open.sh \
+        scripts/patch-wecom-cef.sh \
+        scripts/prepare-deepin-runtime.sh \
+        scripts/run-deepin-package.sh \
+        scripts/wecom-proxy-environment.sh \
+        desktop/io.github.loveyu.WeComWine.Deepin.desktop \
+        icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png | \
+        sha256sum | awk '{print $1}'
+)"
+build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:${project_payload_sha256}:normal-mode-v28-payload-signature"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
