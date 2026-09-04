@@ -251,7 +251,7 @@ fi
 printf '%s  %s\n' "${FONT_FILE_SHA256}" "${font_source}" | sha256sum --check -
 
 runtime_dependency_signature="${HELPER_SHA256}:${P7ZIP_SHA256}:${P7ZIP_FULL_SHA256}:${LIBCAPI_SHA256}:${LIBGPHOTO_SHA256}:${LIBGPHOTO_PORT_SHA256}:${LIBPCSCLITE_SHA256}:${LIBSANE_SHA256}:${LIBXML2_SHA256}:${LIBICU74_SHA256}"
-build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v21-machine-file-associations"
+build_signature="${APP_ID}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:normal-mode-v22-home-machine-file-associations"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -413,7 +413,7 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
         --socket=pulseaudio \
         --device=dri \
         --allow=multiarch \
-        --filesystem=xdg-download/WeCom:create \
+        --filesystem=home \
         --extension=org.freedesktop.Platform.Compat.i386=directory=lib/i386-linux-gnu \
         --extension=org.freedesktop.Platform.Compat.i386=version=25.08 \
         --extension=org.freedesktop.Platform.GL32=directory=lib/i386-linux-gnu/GL \

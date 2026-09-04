@@ -9,6 +9,37 @@ fi
 
 gdbus_command="${WECOM_GDBUS_COMMAND:-gdbus}"
 xdg_open_command="${WECOM_XDG_OPEN_COMMAND:-xdg-open}"
+getfattr_command="${WECOM_GETFATTR_COMMAND:-getfattr}"
+python_command="${WECOM_PYTHON_COMMAND:-python3}"
+
+resolve_document_portal_uri() {
+    local portal_uri="$1"
+    local portal_path=''
+    local portal_root=''
+    local portal_relative_path=''
+    local host_root="${WECOM_DOCUMENT_PORTAL_HOST_PATH:-}"
+
+    portal_path="$("${python_command}" -c \
+        'import sys, urllib.parse; print(urllib.parse.unquote(urllib.parse.urlsplit(sys.argv[1]).path))' \
+        "${portal_uri}")" || return 1
+    if [[ "${portal_path}" =~ ^(/run/user/[[:digit:]]+/doc/[^/]+)/(.*)$ ]] || \
+       [[ "${portal_path}" =~ ^(/run/flatpak/doc/[^/]+)/(.*)$ ]]; then
+        portal_root="${BASH_REMATCH[1]}"
+        portal_relative_path="${BASH_REMATCH[2]}"
+    else
+        return 1
+    fi
+
+    if [[ -z "${host_root}" ]]; then
+        host_root="$("${getfattr_command}" --only-values \
+            -n user.document-portal.host-path "${portal_root}" 2>/dev/null)" || return 1
+    fi
+    [[ "${host_root}" == /* && -n "${portal_relative_path}" ]] || return 1
+
+    "${python_command}" -c \
+        'import pathlib, sys; print(pathlib.Path(sys.argv[1]).as_uri())' \
+        "${host_root%/}/${portal_relative_path}"
+}
 
 case "${target}" in
     wecom-select:file:///[Cc]:/*)
@@ -25,9 +56,13 @@ case "${target}" in
         ;;
     wecom-select:file:///[Zz]:/*)
         # explorer.exe receives a Wine Z: path. UrlCreateFromPathW preserves
-        # that drive in the custom URI; remove it before calling the host
-        # FileManager1 API.
+        # that drive in the custom URI. A Document Portal path exposes only
+        # one granted item, so recover its original host path first; this lets
+        # the file manager show the complete containing directory.
         uri="file://${target#wecom-select:file:///?:}"
+        if host_uri="$(resolve_document_portal_uri "${uri}")"; then
+            uri="${host_uri}"
+        fi
         ;;
     wecom-select:*)
         printf '不支持的 Wine Explorer 选择 URI：%s\n' "${target}" >&2

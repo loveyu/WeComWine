@@ -11,8 +11,13 @@ run_fallback() {
     FLATPAK_ID=io.github.loveyu.WeComWine.Deepin \
     WINEPREFIX=/var/data/wine-wecom-deepin \
     WECOM_GDBUS_COMMAND=/usr/bin/false \
-    WECOM_XDG_OPEN_COMMAND=/usr/bin/printf \
+    WECOM_XDG_OPEN_COMMAND=/usr/bin/echo \
         bash "${HOST_OPEN}" "$1"
+}
+
+run_portal_fallback() {
+    WECOM_DOCUMENT_PORTAL_HOST_PATH='/home/tester/Downloads/客户 文件' \
+        run_fallback "$1"
 }
 
 c_result="$(run_fallback \
@@ -20,9 +25,10 @@ c_result="$(run_fallback \
 [[ "${c_result}" == \
     'file:///home/tester/.var/app/io.github.loveyu.WeComWine.Deepin/data/wine-wecom-deepin/drive_c/users/tester/Documents/WXWork/Cache/Image' ]]
 
-z_result="$(run_fallback \
-    'wecom-select:file:///Z:/run/user/1000/doc/abc123/report.zip')"
-[[ "${z_result}" == 'file:///run/user/1000/doc/abc123' ]]
+z_result="$(run_portal_fallback \
+    'wecom-select:file:///Z:/run/user/1000/doc/abc123/%E6%8A%A5%E5%91%8A%20%E6%9C%80%E7%BB%88%E7%89%88.zip')"
+[[ "${z_result}" == \
+    'file:///home/tester/Downloads/%E5%AE%A2%E6%88%B7%20%E6%96%87%E4%BB%B6' ]]
 
 if run_fallback 'wecom-select:file:///D:/unsupported.txt' >/dev/null 2>&1; then
     printf '不支持的驱动器不应交给宿主文件管理器\n' >&2

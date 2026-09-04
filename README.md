@@ -174,6 +174,12 @@ Flatpak OpenURI Portal，在系统默认浏览器中打开。文件对话框使�
 Portal 构建中单独校验的 32/64 位 `comdlg32` PE/Unix 模块，避免把未完成构建目录
 中的旧无 Portal DLL 误装进单包。
 
+本地 Deepin 包显式开放宿主 `home`，用于在文件选择器和文件管理器中浏览完整的
+用户目录；该路径中的文件不再受 Document Portal 单文件授权隔离。
+该权限范围较大，仅适用于当前受信任的企业微信专用包。访问其他未开放目录时，
+文件和文件夹选择仍强制使用 XDG Desktop Portal 提供的系统选择器，而不是 Wine
+选择器。
+
 点击收到的常见办公文档、压缩包、图片、音视频或文本附件时，前缀中的
 `WeCom.HostOpen` 文件关联会把文件交给 `winebrowser.exe`，再经 Flatpak
 OpenURI Portal 使用宿主系统默认应用打开。关联同时写入该专用前缀的用户和
@@ -183,9 +189,11 @@ OpenURI Portal 使用宿主系统默认应用打开。关联同时写入该专�
 
 企业微信调用 `explorer.exe /select` 定位收到的附件时，Wine 11 Explorer 的
 定制分支会把前缀内的 `C:` 路径映射到宿主可见的 Flatpak 数据目录，并将 `Z:`
-路径按宿主/Document Portal 路径处理，再交给
-`org.freedesktop.FileManager1.ShowItems`；在 KDE 下由 Dolphin 打开目录并选中
-附件。`/desktop` 和其他 Explorer 参数仍使用 Wine 原实现。
+路径中的 Document Portal 授权 ID 反查为原始宿主文件，再交给
+`org.freedesktop.FileManager1.ShowItems`；由当前桌面的默认文件管理器打开目录并
+选中附件，因此可以浏览原目录中的其他文件，并不依赖 Dolphin。无法取得门户
+元数据或 FileManager1 服务时，使用 `xdg-open` 回退。
+`/desktop` 和其他 Explorer 参数仍使用 Wine 原实现。
 
 首次从旧 Deepin Wine 10 前缀启动时会原位迁移 Wine 系统文件和注册表，同时保留
 登录数据、文泉驿微米黑字体及可恢复的旧 `system32`/`syswow64` 目录备份。迁移和
