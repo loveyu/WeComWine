@@ -182,7 +182,8 @@ OpenURI Portal 使用宿主系统默认应用打开。关联同时写入该专�
 该关联。
 
 企业微信调用 `explorer.exe /select` 定位收到的附件时，Wine 11 Explorer 的
-定制分支会把 Document Portal URI 交给宿主
+定制分支会把前缀内的 `C:` 路径映射到宿主可见的 Flatpak 数据目录，并将 `Z:`
+路径按宿主/Document Portal 路径处理，再交给
 `org.freedesktop.FileManager1.ShowItems`；在 KDE 下由 Dolphin 打开目录并选中
 附件。`/desktop` 和其他 Explorer 参数仍使用 Wine 原实现。
 

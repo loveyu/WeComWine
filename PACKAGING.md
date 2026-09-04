@@ -25,7 +25,7 @@ ABI；所有 WineDbg 入口在构建和前缀迁移时移除，禁止以调试�
 Portal；专用前缀的用户/机器 Classes 视图保持一致，避免 Wine 11 预置关联覆盖后
 无响应或弹出 Wine 的“打开方式”窗口。
 Wine 11 的 32/64 位 `explorer.exe` 仅对 `/select` 增加宿主 FileManager1 转发，
-用于让 Dolphin 定位 Document Portal 授权的附件；其他参数保留 Wine 原行为。
+支持前缀 `C:` 附件及宿主/Document Portal `Z:` 路径；其他参数保留 Wine 原行为。
 文件与文件夹选择使用固定摘要校验的 Wine 11.16 Portal `comdlg32` 32/64 位 PE 与
 Unix 模块；构建脚本拒绝接受只有 `portal-build` 目录名、实际却未包含 Portal
 实现的旧 DLL。
