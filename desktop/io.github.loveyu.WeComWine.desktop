@@ -2,6 +2,8 @@
 Type=Application
 Name=企业微信（Wine Flatpak）
 Comment=通过隔离的 Wine Flatpak 运行 Windows 企业微信
+Keywords=WeCom;WeChat Work;Enterprise WeChat;WXWork;Weixin;Qiye Weixin;Qiwei;
+Keywords[zh_CN]=企业微信;企微;微信办公;企业办公;WeCom;WeChat Work;WXWork;weixin;qiye weixin;qiyeweixin;qiwei;qi wei;qyw;qw;
 Exec=systemctl --user start wecom-flatpak-poc.target
 Icon=io.github.loveyu.WeComWine
 Terminal=false
