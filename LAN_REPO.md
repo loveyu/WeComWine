@@ -9,8 +9,8 @@
 | --- | --- |
 | 应用 ID | `io.github.loveyu.WeComWine.Deepin` |
 | Flatpak 分支 | `stable-25.08` |
-| 企业微信版本 | `5.0.10.6025` |
-| 打包版本 | `5.0.10.6025-20260904` |
+| 企业微信版本 | `5.0.7.6005` |
+| 打包版本 | `20260911.1-5.0.7.6005deepin11` |
 | 内部构建 repo | `~/.local/share/wecom-flatpak-poc/deepin-flatpak-repo` |
 | 对外 LAN repo | `~/.local/share/flatpak-lan/repo` |
 | HTTP 根目录 | `~/.local/share/flatpak-lan` |
@@ -24,8 +24,8 @@
 appdir 导出到 LAN repo 并更新仓库 summary。
 
 `stable-25.08` 是 Flatpak 分支和运行时兼容线，不是应用版本。应用展示版本由
-AppStream 提供，格式为“企业微信版本-打包日期”，例如
-`5.0.10.6025-20260904`。
+AppStream 提供，当前格式为“打包日期及修订号-Deepin 适配包版本”，例如
+`20260911.1-5.0.7.6005deepin11`。
 
 发布或安装前使用下面的命令确认本机到客户端的实际出口地址，并将后续命令中的
 `LAN_REPO_HOST` 替换为该地址：
@@ -82,7 +82,7 @@ cd /path/to/wecom-wine-flatpak
 make deepin-flatpak-local
 
 test -f \
-  ~/.cache/wecom-flatpak-poc/deepin-engine/build-10.14deepin11-5.0.0.6008deepin8/appdir/metadata
+  ~/.cache/wecom-flatpak-poc/deepin-engine/build-10.14deepin11-5.0.7.6005deepin11/appdir/metadata
 ```
 
 将 appdir 导出到对外 LAN repo：
@@ -92,9 +92,9 @@ source_commit="$(git rev-parse --short=7 HEAD)"
 
 flatpak build-export \
   --disable-fsync \
-  --subject="WeCom Wine Deepin 5.0.10.6025 (source ${source_commit})" \
+  --subject="WeCom 5.0.7.6005 with Deepin Wine 10.14deepin11 (source ${source_commit})" \
   ~/.local/share/flatpak-lan/repo \
-  ~/.cache/wecom-flatpak-poc/deepin-engine/build-10.14deepin11-5.0.0.6008deepin8/appdir \
+  ~/.cache/wecom-flatpak-poc/deepin-engine/build-10.14deepin11-5.0.7.6005deepin11/appdir \
   stable-25.08
 
 flatpak build-update-repo \

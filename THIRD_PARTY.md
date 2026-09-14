@@ -10,11 +10,13 @@
 
 ## 企业微信
 
-- 验证版本：5.0.10.6015、5.0.10.6025
+- 当前默认版本：5.0.7.6005；历史验证版本：5.0.10.6015、5.0.10.6025
 - 官方下载地址由 `scripts/common.sh` 记录。
+- 5.0.7.6005 安装包 SHA-256：
+  `38cea4d4ef18ec196242203c251db673f1bf0aa2e6dd7b2b7593b9f5e4704bfa`。
 - 5.0.10.6015 安装包 SHA-256：
   `d46b1cc2603c70ff9cccd85998eed0c0d61f11a3a68e050b0695111294c10c87`。
-- 腾讯 CDN 当前提供的 5.0.10.6025 安装包 SHA-256：
+- 历史验证的 5.0.10.6025 安装包 SHA-256：
   `f9b028420b84dda6888246516e8a1dddd3174eaeb3d8d930e8e04264a9cfa513`；
   安装后 `WXWork.exe` SHA-256 为
   `46fbd8d193e6c42aa9cac4b38cf857cd125127cb658129b7d166dee8f17d6db2`。
@@ -45,15 +47,20 @@
 - 引擎包：`deepin-wine10-stable 10.14deepin11`，来源为 Deepin/统信官方应用
   商店，SHA-256 为
   `a3412982cfb16d8e20d29508779ac5ad8a3b389a41737eebb7f657a1b5b9cb0f`。
-- 企业微信适配包：`com.qq.weixin.work.deepin 5.0.0.6008deepin8`，同样来源于
+- 企业微信适配包：`com.qq.weixin.work.deepin 5.0.7.6005deepin11`，同样来源于
   官方应用商店，SHA-256 为
-  `e1ec28e988d5823287dd83ce4715072375314d81af2df5ca5c8ce8f84553010b`。
+  `227d9469f477492cb26108da2d950c225b9f5c81933968bf71891e7b3e6f08d6`。
 - 中文字体包：Deepin 官方仓库中的
   `fonts-wqy-microhei 0.2.0-beta-3.1`，SHA-256 为
   `fc23a97e13c0ac783b96710e2ed8e28d8aa34392cc10f3725d0e020392fb0a8a`。
   企业微信适配包明确依赖该字体；构建脚本将字体文件及版权说明装入本地
   Flatpak，使官方前缀已有的宋体、微软雅黑字体替换规则能够生效。该字体采用
   Apache-2.0 或带字体例外的 GPL-3+ 双重许可。
+- Emoji 字体：Google Fonts 仓库提交
+  `8e44913e4ff26fc997e6856c1ec40ff4791c98c5` 中的轮廓版
+  `NotoEmoji[wght].ttf` 3.003，SHA-256 为
+  `de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551`。
+  字体采用 SIL Open Font License 1.1；构建脚本同时封装固定摘要的 `OFL.txt`。
 - 运行辅助包：`deepin-wine-helper 5.4.10-1`，SHA-256 为
   `ad23f45e60e574b1eb6bd1964cc0f54e434478e1b3114be6cdb4f0dcfc6caa41`。
   本地包只提取官方启动路径需要的 OpenGL 探测与 GDI 回退文件；不封装依赖
@@ -67,9 +74,9 @@
 - `p7zip 16.02+dfsg-8` 与 `p7zip-full 16.02+dfsg-8` 用于在新用户数据目录中
   解压官方 `files.7z` 前缀模板。所有下载均固定版本并校验 SHA-256。
 - `scripts/build-deepin-wine-flatpak.sh` 只在用户本机下载、校验和封装上述内容；
-  本地包完整携带 Deepin 官方适配目录和 `files.7z`，并在该前缀内安装腾讯官方
-  企业微信 5.0.10.6025。仓库不保存 `.deb`、`.exe`、企业微信程序、适配 DLL 或
-  生成的 Flatpak。
+  本地包完整携带 Deepin 官方适配目录、`files.7z` 和其中匹配的企业微信
+  5.0.7.6005 预制前缀，不再叠加独立腾讯安装包。仓库不保存 `.deb`、`.exe`、
+  企业微信程序、适配 DLL 或生成的 Flatpak。
   由于企业微信适配包包含专有客户端发布内容，本地测试 Flatpak 不得进入公开
   CI artifact 或公开发行附件。
 - 官方预制前缀另含 Microsoft 原生 `riched20.dll` 和 `msftedit.dll`，并配置

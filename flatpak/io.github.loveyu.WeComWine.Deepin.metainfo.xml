@@ -28,6 +28,36 @@
   </provides>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="20260911.1-5.0.7.6005deepin11" date="2026-09-11">
+      <description>
+        <p>Bundle and register an outline Noto Emoji fallback so emoji no longer render as missing-glyph boxes.</p>
+        <p xml:lang="zh-CN">内置并注册轮廓版 Noto Emoji 回退字体，修复 emoji 不显示或显示方块。</p>
+      </description>
+    </release>
+    <release version="20260908.3-5.0.7.6005deepin11" date="2026-09-08">
+      <description>
+        <p>Promote the matched Deepin WeCom 5.0.7.6005 package after stable runtime validation.</p>
+        <p xml:lang="zh-CN">在稳定运行验证后，正式发布 Deepin 配套的企业微信 5.0.7.6005 组合。</p>
+      </description>
+    </release>
+    <release version="20260908.2-5.0.7.6005deepin11" date="2026-09-08">
+      <description>
+        <p>Use the WeCom 5.0.7.6005 client bundled by Deepin as a matched set with its deepin11 compatibility layer.</p>
+        <p xml:lang="zh-CN">使用 Deepin 打包的企业微信 5.0.7.6005，并与 deepin11 兼容层作为匹配整体运行。</p>
+      </description>
+    </release>
+    <release version="5.0.10.6025-20260908.1" date="2026-09-08">
+      <description>
+        <p>Relocate the deepin11 application-specific Wine server so it can load the engine locale data inside Flatpak.</p>
+        <p xml:lang="zh-CN">调整 deepin11 定制 Wine server 的安装位置，使其能在 Flatpak 内加载引擎区域数据。</p>
+      </description>
+    </release>
+    <release version="5.0.10.6025-20260908" date="2026-09-08">
+      <description>
+        <p>Update the Deepin application compatibility layer to 5.0.7.6005deepin11 while retaining WeCom 5.0.10.6025.</p>
+        <p xml:lang="zh-CN">升级到 Deepin 5.0.7.6005deepin11 应用兼容层，并保留企业微信 5.0.10.6025。</p>
+      </description>
+    </release>
     <release version="5.0.10.6025-20260904" date="2026-09-04">
       <description>
         <p>Package WeCom 5.0.10.6025 with the verified Deepin runtime.</p>

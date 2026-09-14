@@ -21,13 +21,27 @@ fi
 # complete run_v4.sh cannot be used here: it assumes /opt paths, invokes DTK
 # desktop UI and may replace a prefix based on Debian package state.
 if [[ ! -f "${prefix}/.libglsoftware" && \
+      ! -f "${prefix}/.libglsoftware_d3d11" && \
       ! -f "${prefix}/.libglhardware" ]]; then
-    if /app/bin/deepin-wine "${adapter_root}/win32-test.exe" \
-        >/dev/null 2>&1; then
-        touch "${prefix}/.libglhardware"
-    else
-        touch "${prefix}/.libglsoftware"
-    fi
+    probe_status=0
+    /app/bin/deepin-wine "${adapter_root}/win32-test.exe" \
+        >/dev/null 2>&1 || probe_status=$?
+    case "${probe_status}" in
+        0)
+            touch "${prefix}/.libglhardware"
+            ;;
+        1)
+            touch "${prefix}/.libglsoftware_d3d11"
+            ;;
+        *)
+            touch "${prefix}/.libglsoftware"
+            ;;
+    esac
+fi
+
+if [[ -f "/usr/lib/x86_64-linux-gnu/libGLX_zx.so.0" && \
+      ! -f "/usr/lib/x86_64-linux-gnu/dri/swrast_vndri.so" ]]; then
+    touch "${prefix}/.libgl_need_mesa_vendor"
 fi
 
 if [[ ! -f "${prefix}/.init_d3d" ]]; then

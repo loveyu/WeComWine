@@ -16,21 +16,26 @@ readonly ENGINE_URL="https://pro-store-packages.uniontech.com/appstore/pool/apps
 readonly HELPER_VERSION="5.4.10-1"
 readonly HELPER_SHA256="ad23f45e60e574b1eb6bd1964cc0f54e434478e1b3114be6cdb4f0dcfc6caa41"
 readonly HELPER_URL="https://pro-store-packages.uniontech.com/appstore/pool/appstore/d/deepin-wine-helper/deepin-wine-helper_5.4.10-1_amd64.deb"
-readonly WECOM_ADAPTER_VERSION="5.0.0.6008deepin8"
-readonly WECOM_ADAPTER_SHA256="e1ec28e988d5823287dd83ce4715072375314d81af2df5ca5c8ce8f84553010b"
-readonly WECOM_ADAPTER_URL="https://pro-store-packages.uniontech.com/appstore/pool/appstore/c/com.qq.weixin.work.deepin/com.qq.weixin.work.deepin_5.0.0.6008deepin8_amd64.deb"
-readonly WECOM_ADAPTER_WININET32_SHA256="bb699d183a2f327d18f7fee78e4f51fdc5d3142a11c8e9cb85c005862f184a0c"
-readonly WECOM_ADAPTER_WININET64_SHA256="bb9c7af7ce26433c0cb0403c6bd23a094f02584ae7b5e9131e0a4e568368798e"
-readonly WECOM_VERSION="5.0.10.6025"
-readonly PACKAGE_DATE="20260904"
-readonly PACKAGE_RELEASE_DATE="2026-09-04"
-readonly PACKAGE_VERSION="${WECOM_VERSION}-${PACKAGE_DATE}"
-readonly WECOM_INSTALLER_SHA256="f9b028420b84dda6888246516e8a1dddd3174eaeb3d8d930e8e04264a9cfa513"
-readonly WECOM_INSTALLER_URL="https://dldir1.qq.com/wework/work_weixin/WeCom_5.0.10.6025.exe"
+readonly WECOM_VERSION="5.0.7.6005"
+readonly WECOM_ADAPTER_VERSION="${WECOM_VERSION}deepin11"
+readonly WECOM_ADAPTER_SHA256="227d9469f477492cb26108da2d950c225b9f5c81933968bf71891e7b3e6f08d6"
+readonly WECOM_ADAPTER_URL="https://pro-store-packages.uniontech.com/appstore/pool/appstore/c/com.qq.weixin.work.deepin/com.qq.weixin.work.deepin_5.0.7.6005deepin11_amd64.deb"
+readonly WECOM_ADAPTER_WININET32_SHA256="c629a1b069bf266b09d1bd41edbd2652ded5099049cb31c48f3091e4675f6984"
+readonly WECOM_ADAPTER_WININET64_SHA256="ff2cf72f844e59f0430fea93e051d956fff33541871149e2fec39fc4c9b7089e"
+readonly WECOM_ADAPTER_WINESERVER_SHA256="384cb295924d70b6f59f10e744b39b15c47e0f5000bf2e92acab07302859d99f"
+readonly PACKAGE_DATE="20260911.1"
+readonly PACKAGE_RELEASE_DATE="2026-09-11"
+readonly PACKAGE_VERSION="${PACKAGE_DATE}-${WECOM_ADAPTER_VERSION}"
 readonly FONT_VERSION="0.2.0-beta-3.1"
 readonly FONT_PACKAGE_SHA256="fc23a97e13c0ac783b96710e2ed8e28d8aa34392cc10f3725d0e020392fb0a8a"
 readonly FONT_FILE_SHA256="2420e8078af796b19a3f6ef13de527a1a91c1e7171eea115926c614ced1009b3"
 readonly FONT_URL="https://community-packages.deepin.com/deepin/beige/pool/main/f/fonts-wqy-microhei/fonts-wqy-microhei_0.2.0-beta-3.1_all.deb"
+readonly EMOJI_FONT_VERSION="3.003"
+readonly EMOJI_FONT_COMMIT="8e44913e4ff26fc997e6856c1ec40ff4791c98c5"
+readonly EMOJI_FONT_SHA256="de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551"
+readonly EMOJI_FONT_LICENSE_SHA256="500bb1ccf43df7bbb522112f9133a52b16e1c35e809632f5d8609b179152de5b"
+readonly EMOJI_FONT_URL="https://raw.githubusercontent.com/google/fonts/${EMOJI_FONT_COMMIT}/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf"
+readonly EMOJI_FONT_LICENSE_URL="https://raw.githubusercontent.com/google/fonts/${EMOJI_FONT_COMMIT}/ofl/notoemoji/OFL.txt"
 readonly DEEPIN_REPO="https://community-packages.deepin.com/deepin/beige"
 readonly P7ZIP_SHA256="16afa2ffee091743131a235d2662ac2d1d8263a8598f6cb1f9f71134f3c34a32"
 readonly P7ZIP_FULL_SHA256="9478c2665cda8f4fe6b7916e122b66205b50012fbc11d63d7c88b9e3fca19221"
@@ -60,8 +65,9 @@ SKIP_INSTALL="${WECOM_DEEPIN_SKIP_INSTALL:-0}"
 ENGINE_DEB="${WECOM_DEEPIN_ENGINE_DEB:-${CACHE_ROOT}/deepin-wine10-stable_${ENGINE_VERSION}_amd64.deb}"
 HELPER_DEB="${WECOM_DEEPIN_HELPER_DEB:-${CACHE_ROOT}/deepin-wine-helper_${HELPER_VERSION}_amd64.deb}"
 WECOM_ADAPTER_DEB="${WECOM_DEEPIN_WECOM_DEB:-${CACHE_ROOT}/com.qq.weixin.work.deepin_${WECOM_ADAPTER_VERSION}_amd64.deb}"
-WECOM_INSTALLER="${WECOM_DEEPIN_INSTALLER:-${CACHE_ROOT}/WeCom_${WECOM_VERSION}.exe}"
 FONT_DEB="${WECOM_DEEPIN_FONT_DEB:-${CACHE_ROOT}/fonts-wqy-microhei_${FONT_VERSION}_all.deb}"
+EMOJI_FONT_FILE="${WECOM_DEEPIN_EMOJI_FONT:-${CACHE_ROOT}/NotoEmoji-${EMOJI_FONT_VERSION}-wght.ttf}"
+EMOJI_FONT_LICENSE_FILE="${WECOM_DEEPIN_EMOJI_FONT_LICENSE:-${CACHE_ROOT}/NotoEmoji-${EMOJI_FONT_VERSION}-OFL.txt}"
 P7ZIP_DEB="${CACHE_ROOT}/p7zip_16.02+dfsg-8_amd64.deb"
 P7ZIP_FULL_DEB="${CACHE_ROOT}/p7zip-full_16.02+dfsg-8_amd64.deb"
 LIBCAPI_DEB="${CACHE_ROOT}/libcapi20-3_3.27-3_amd64.deb"
@@ -173,9 +179,12 @@ install -d "${CACHE_ROOT}" "$(dirname -- "${BUILD_ROOT}")"
 download_verified "${ENGINE_URL}" "${ENGINE_DEB}" "${ENGINE_SHA256}"
 download_verified "${HELPER_URL}" "${HELPER_DEB}" "${HELPER_SHA256}" \
     "https://pro-store-packages.uniontech.com/"
-download_verified "${WECOM_ADAPTER_URL}" "${WECOM_ADAPTER_DEB}" "${WECOM_ADAPTER_SHA256}"
-download_verified "${WECOM_INSTALLER_URL}" "${WECOM_INSTALLER}" "${WECOM_INSTALLER_SHA256}"
+download_verified "${WECOM_ADAPTER_URL}" "${WECOM_ADAPTER_DEB}" "${WECOM_ADAPTER_SHA256}" \
+    "https://pro-store-packages.uniontech.com/"
 download_verified "${FONT_URL}" "${FONT_DEB}" "${FONT_PACKAGE_SHA256}"
+download_verified "${EMOJI_FONT_URL}" "${EMOJI_FONT_FILE}" "${EMOJI_FONT_SHA256}"
+download_verified "${EMOJI_FONT_LICENSE_URL}" "${EMOJI_FONT_LICENSE_FILE}" \
+    "${EMOJI_FONT_LICENSE_SHA256}"
 download_verified "${DEEPIN_REPO}/pool/main/p/p7zip/p7zip_16.02+dfsg-8_amd64.deb" \
     "${P7ZIP_DEB}" "${P7ZIP_SHA256}"
 download_verified "${DEEPIN_REPO}/pool/main/p/p7zip/p7zip-full_16.02+dfsg-8_amd64.deb" \
@@ -238,7 +247,11 @@ for required_path in \
     "${helper_source}/gl-wine/gl-wine64" \
     "${helper_source}/gl-wine/gdid3d.reg" \
     "${adapter_source}/dlls/i386-windows/ntdll.dll" \
+    "${adapter_source}/dlls/i386-windows/windowscodecs.dll" \
     "${adapter_source}/dlls/x86_64-unix/ntdll.so" \
+    "${adapter_source}/dlls/x86_64-unix/windowscodecs.so" \
+    "${adapter_source}/dlls/x86_64-windows/windowscodecs.dll" \
+    "${adapter_source}/dlls/wineserver" \
     "${adapter_source}/pre_run.sh" \
     "${adapter_source}/pre_update.sh" \
     "${adapter_source}/run.sh" \
@@ -253,11 +266,8 @@ printf '%s  %s\n' "${WECOM_ADAPTER_WININET32_SHA256}" \
     "${adapter_source}/dlls/i386-windows/wininet.dll" | sha256sum --check -
 printf '%s  %s\n' "${WECOM_ADAPTER_WININET64_SHA256}" \
     "${adapter_source}/dlls/x86_64-windows/wininet.dll" | sha256sum --check -
-if ! 7z l "${WECOM_INSTALLER}" | \
-    grep -F "FileVersion: ${WECOM_VERSION}" >/dev/null; then
-    printf '腾讯官方安装包版本不是预期的 %s。\n' "${WECOM_VERSION}" >&2
-    exit 65
-fi
+printf '%s  %s\n' "${WECOM_ADAPTER_WINESERVER_SHA256}" \
+    "${adapter_source}/dlls/wineserver" | sha256sum --check -
 if ! grep -Fq "<release version=\"${PACKAGE_VERSION}\" date=\"${PACKAGE_RELEASE_DATE}\">" \
     "${PROJECT_DIR}/flatpak/${APP_ID}.metainfo.xml"; then
     printf 'AppStream 版本与当前打包版本不一致：%s\n' "${PACKAGE_VERSION}" >&2
@@ -276,7 +286,7 @@ project_payload_sha256="$(
         scripts/initialize-deepin-prefix.sh \
         scripts/migrate-deepin-prefix-to-wine11.sh \
         scripts/migrate-deepin-prefix-to-wine10.sh \
-        scripts/install-deepin-official-wecom.sh \
+        scripts/configure-emoji-font.sh \
         scripts/configure-host-file-open.sh \
         scripts/generate-appstream-catalog.py \
         scripts/wecom-host-open.sh \
@@ -289,7 +299,7 @@ project_payload_sha256="$(
         icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png | \
         sha256sum | awk '{print $1}'
 )"
-build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_INSTALLER_SHA256}:${FONT_PACKAGE_SHA256}:${runtime_dependency_signature}:${project_payload_sha256}:normal-mode-v28-payload-signature"
+build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_ADAPTER_WINESERVER_SHA256}:${FONT_PACKAGE_SHA256}:${EMOJI_FONT_SHA256}:${EMOJI_FONT_LICENSE_SHA256}:${runtime_dependency_signature}:${project_payload_sha256}:normal-mode-v32-emoji-font"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -314,7 +324,9 @@ install -d \
     "${APP_DIR}/files/share/doc/deepin-wine10-stable" \
     "${APP_DIR}/files/share/doc/deepin-wine-helper" \
     "${APP_DIR}/files/share/doc/fonts-wqy-microhei" \
+    "${APP_DIR}/files/share/doc/noto-emoji" \
     "${APP_DIR}/files/share/fonts/truetype/wqy" \
+    "${APP_DIR}/files/share/fonts/truetype/noto" \
     "${APP_DIR}/files/share/wecom-deepin"
 
 flatpak build \
@@ -324,8 +336,9 @@ flatpak build \
     --bind-mount="/run/deepin-helper=${helper_source}" \
     --bind-mount="/run/deepin-runtime=${runtime_extract}" \
     --bind-mount="/run/wecom-adapter=${adapter_source}" \
-    --bind-mount="/run/wecom-installer=${WECOM_INSTALLER}" \
     --bind-mount="/run/deepin-font=${font_source}" \
+    --bind-mount="/run/emoji-font=${EMOJI_FONT_FILE}" \
+    --bind-mount="/run/emoji-font-license=${EMOJI_FONT_LICENSE_FILE}" \
     --bind-mount="/run/appstream-catalog=${appstream_catalog}" \
     --bind-mount="/run/project=${PROJECT_DIR}" \
     "${APP_DIR}" env LC_ALL=C LANG=C bash -lc '
@@ -383,19 +396,31 @@ flatpak build \
             /run/wecom-adapter/dlls/x86_64-windows/wininet.dll \
             /app/lib/wine/x86_64-windows/wininet.dll
         install -d /app/bin \
-            /app/share/wecom-deepin/adapter /app/share/wecom-deepin/official \
+            /app/share/wecom-deepin/adapter \
             /app/share/wecom-deepin/helper/gl-wine \
             /app/share/doc/deepin-wine10-stable \
             /app/share/doc/deepin-wine-helper \
             /app/share/doc/fonts-wqy-microhei \
+            /app/share/doc/noto-emoji \
             /app/lib/deepin-compat /app/lib/p7zip \
-            /app/share/fonts/truetype/wqy /app/share/applications /app/share/metainfo \
+            /app/share/fonts/truetype/wqy /app/share/fonts/truetype/noto \
+            /app/share/applications /app/share/metainfo \
             /app/share/app-info/xmls /app/share/app-info/icons/flatpak/256x256 \
             /app/share/icons/hicolor/256x256/apps
-        # Preserve the complete Deepin application adapter, including its
-        # prefix template, WINEPREDLL overlay, registry and pre-run/update
-        # helpers.  The Tencent installer updates only the client payload.
+        # Preserve the complete Deepin application package, including its
+        # 5.0.7.6005 prefix template, WINEPREDLL overlay, registry and
+        # pre-run/update helpers. Do not overlay a newer Tencent installer:
+        # the client and compatibility modules are shipped as a matched set.
         cp -a /run/wecom-adapter/. /app/share/wecom-deepin/adapter/
+        # deepin11 adds an application-specific wineserver to WINEPREDLL.  It
+        # resolves l_intl.nls relative to its executable, so running it from
+        # the adapter/dlls directory makes startup fail inside Flatpak.  Keep
+        # the custom server, but install it into the matching engine bin path
+        # beside the engine share/wine/nls data and remove the misplaced copy.
+        install -m 0755 \
+            /app/share/wecom-deepin/adapter/dlls/wineserver \
+            /app/deepin-wine10-stable/bin/wineserver
+        rm -f /app/share/wecom-deepin/adapter/dlls/wineserver
         # Keep only the helper components used by the normal application
         # startup path.  The Deepin-only DTK updater/banner/uninstaller are
         # intentionally excluded because they are not usable in Flatpak.
@@ -418,10 +443,12 @@ flatpak build \
             "libicudata.so.74*"; do
             cp -a ${runtime_lib}/${library_pattern} /app/lib/deepin-compat/
         done
-        install -m 0644 /run/wecom-installer \
-            /app/share/wecom-deepin/official/WeCom_5.0.10.6025.exe
         install -m 0644 /run/deepin-font \
             /app/share/fonts/truetype/wqy/wqy-microhei.ttc
+        install -m 0644 /run/emoji-font \
+            /app/share/fonts/truetype/noto/NotoEmoji-wght.ttf
+        install -m 0644 /run/emoji-font-license \
+            /app/share/doc/noto-emoji/OFL.txt
         install -m 0755 /run/project/scripts/deepin-wine-wrapper.sh \
             /app/bin/deepin-wine
         install -m 0755 /run/project/scripts/initialize-deepin-prefix.sh \
@@ -430,8 +457,8 @@ flatpak build \
             /app/share/wecom-deepin/migrate-prefix-to-wine11.sh
         install -m 0755 /run/project/scripts/migrate-deepin-prefix-to-wine10.sh \
             /app/share/wecom-deepin/migrate-prefix-to-wine10.sh
-        install -m 0755 /run/project/scripts/install-deepin-official-wecom.sh \
-            /app/share/wecom-deepin/install-official-wecom.sh
+        install -m 0755 /run/project/scripts/configure-emoji-font.sh \
+            /app/share/wecom-deepin/configure-emoji-font.sh
         install -m 0755 /run/project/scripts/configure-host-file-open.sh \
             /app/share/wecom-deepin/configure-host-file-open.sh
         install -m 0755 /run/project/scripts/wecom-host-open.sh \

@@ -18,7 +18,9 @@ done
 # The former KWin rule forced system borders and could leave WeCom windows at
 # the topmost level.  Remove the stale installed helper during in-place
 # upgrades; the source tree no longer ships or invokes it.
-rm -f -- "${INSTALL_ROOT}/scripts/install-kwin-rule.sh"
+rm -f -- \
+    "${INSTALL_ROOT}/scripts/install-kwin-rule.sh" \
+    "${INSTALL_ROOT}/scripts/install-deepin-official-wecom.sh"
 "${INSTALL_ROOT}/scripts/remove-stale-kwin-rule.sh"
 
 install -m 644 "${SOURCE_ROOT}/README.md" "${INSTALL_ROOT}/README.md"

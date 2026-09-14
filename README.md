@@ -5,10 +5,11 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
 不包含企业微信安装包、Wine 前缀、用户数据或构建缓存。
 
 现有部署已在 Debian 13、KDE Plasma 6 Wayland/XWayland 和 Fcitx5 环境验证；
-本地 Deepin 单包使用 ABI 匹配的 Deepin Wine 10.14 与官方企业微信适配层，
-独立 Portal runner 继续使用 Wine 11。企业微信首次安装基线为 5.0.10.6015，
-当前已验证内置升级到 5.0.10.6025。正式 Wine 前缀保持可写，允许企业微信继续
-安装组件并通过内置更新器升级到新版本。
+本地 Deepin 单包固定使用互相匹配的 Deepin Wine 10.14、
+`5.0.7.6005deepin11` 适配层和包内企业微信 5.0.7.6005，不再叠加
+腾讯的更新版安装包。独立 Portal runner 继续使用 Wine 11，企业微信首次
+安装版本同样固定为 5.0.7.6005；5.0.10.6015 到 5.0.10.6025 的内置升级结果
+保留为历史兼容性验证记录。
 仓库构建目标已跟进 Wine 11.16，完整 runner 构建和登录态回归仍单独记录。
 
 ## 已验证能力
@@ -169,7 +170,10 @@ Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重�
 导出的桌面入口。
 
 当前本机 Deepin Flatpak 完整携带 Deepin Wine 10.14、官方企业微信代码包、
-`WINEPREDLL` 适配目录、字体和所需 `deepin-wine-helper` 资源。企业微信进程使用
+`WINEPREDLL` 适配目录、中文字体、轮廓版 Noto Emoji 和所需
+`deepin-wine-helper` 资源。启动入口会把 Noto Emoji 安装到独立 Wine 前缀，并将
+它加入 Tahoma 回退链，同时把 `Segoe UI Emoji` 映射到该字体；企业微信的
+DirectWrite/Skia 文本路径因此能取得 emoji 字形，不依赖宿主的微软字体。企业微信进程使用
 整套 ABI 匹配的 Deepin 引擎和适配模块；包内仍保留 Wine 11 文件，但不把两代
 `user32`、`win32u` 或 `winex11` 模块混合加载。实测混合窗口栈会触发 Wine
 user-driver 版本不匹配或 USER 锁断言，而完整 Deepin 引擎可将
@@ -209,6 +213,36 @@ Deepin 单包启动时只把 Wine 迁移生成的内置模块链接切回包内
 `/app/deepin-wine10-stable`，保留登录数据、注册表和历史
 `system32`/`syswow64` 备份。迁移和正常启动均不调用 WineDbg，也不会自动打开
 聊天或链接。
+
+### Deepin 稳定基线与恢复检查
+
+Deepin 模式的稳定基线是一个不可拆分的组合：企业微信 `5.0.7.6005`、适配包
+`5.0.7.6005deepin11` 和 Deepin Wine `10.14deepin11`。不要在该前缀中运行官方
+5.0.10 安装器，也不要用普通 Wine 11 启动其 32 位主程序。每次源码升级、Runner
+切换或故障恢复前，先重新部署用户级脚本并检查状态：
+
+```bash
+make install-user
+~/.local/share/wecom-wine-flatpak/scripts/status.sh
+```
+
+状态输出中的 `package` 应为 `5.0.7.6005deepin11`，`engine` 应为
+`deepin-wine-10.14`，`verified` 应为 `yes`。若已知稳定 Bundle 仍在本地，可按
+以下顺序恢复应用而不删除登录数据：
+
+```bash
+systemctl --user stop wecom-flatpak-poc.target
+flatpak install --user --reinstall \
+  artifacts/deepin-private/io.github.loveyu.WeComWine.Deepin-\
+20260908.3-5.0.7.6005deepin11-x86_64.flatpak
+scripts/switch-to-deepin-runner.sh --start
+```
+
+遇到状态 73 和 `.wine10-migration-backup` 时，不要执行
+`flatpak uninstall --delete-data`，也不要删除整个 Wine 前缀。新版迁移脚本会复用
+内容完整且标记为 Wine 11 的既有备份；其他情况应先停止服务、保留并检查备份，
+再处理。版本判断必须同时核对 `.deepin-wecom-package` 与 `.wine-engine`，不能只看
+Flatpak 名称或企业微信窗口。
 
 默认启用任务栏窗口图标管理，只处理 KWin `_NET_CLIENT_LIST` 中 `WM_CLASS` 为
 `wxwork.exe` 的受管窗口，不修改托盘图标，也不清除企业微信用于消息提醒的

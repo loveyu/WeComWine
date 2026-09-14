@@ -61,13 +61,11 @@ flatpak kill "${DEEPIN_FLATPAK_APP}" 2>/dev/null || true
 
 printf '%s\n' "${DEEPIN_FLATPAK_APP}" > "${RUNNER_STATE_FILE}"
 
-# Reload common.sh after selecting the new runner.  Initialize exclusively
-# from Deepin's complete prefix and adapter, then update the client payload in
-# that same prefix with the verified Tencent installer bundled locally.
+# Reload common.sh after selecting the new runner. Initialize exclusively
+# from Deepin's complete, version-matched 5.0.7 prefix and adapter.
 source "${SCRIPT_DIR}/common.sh"
-write_status "${STATUS_FILE}" "initialize-official-prefix" "${DEEPIN_WINEPREFIX_HOST}"
+write_status "${STATUS_FILE}" "initialize-deepin-prefix" "${DEEPIN_WINEPREFIX_HOST}"
 flatpak_wine sh /app/share/wecom-deepin/initialize-prefix.sh
-flatpak_wine sh /app/share/wecom-deepin/install-official-wecom.sh
 flatpak_wine sh /app/share/wecom-deepin/migrate-prefix-to-wine10.sh
 
 write_status "${STATUS_FILE}" "prepared" \

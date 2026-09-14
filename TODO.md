@@ -86,6 +86,12 @@
   验证 Deepin `user32`/`win32u`/`winex11` 后确认跨版本混装存在 user-driver ABI
   不匹配和 USER 锁断言。Deepin 单包改为完整 Wine 10.14 + 官方 `WINEPREDLL`，
   隔离登录态实测搜索窗口映射为 600×1083 并正常显示结果。
+- [x] 固定 Deepin 单包为企业微信 5.0.7.6005、`5.0.7.6005deepin11` 适配层和
+  Wine 10.14 匹配组合；移除 Deepin 切换入口中的 5.0.10 安装步骤，并在状态命令
+  中同时校验客户端摘要、包版本、引擎标记和 Wine 内置模块链接。
+- [x] 为 Deepin 单包封装 OFL 轮廓版 Noto Emoji，加入 Tahoma 回退链并替换
+  `Segoe UI Emoji`；通过 DirectWrite 补充平面字形探针验证，修复企业微信 emoji
+  不显示或显示方块。
 
 ## 生成正式独立包前
 

@@ -7,8 +7,10 @@ set -Eeuo pipefail
 readonly engine_root="/app/deepin-wine10-stable"
 readonly engine_marker="${WINEPREFIX}/.wine-engine"
 readonly engine_version="deepin-wine-10.14"
+readonly wine11_engine_version="wine-11.0-portal"
 readonly windows_dir="${WINEPREFIX}/drive_c/windows"
 readonly backup_dir="${WINEPREFIX}/.wine10-migration-backup"
+reuse_existing_backup=0
 
 for required_path in \
     "${engine_root}/bin/wine" \
@@ -30,16 +32,28 @@ if [[ -f "${engine_marker}" ]] && \
 fi
 
 if [[ -e "${backup_dir}" ]]; then
-    printf '检测到未完成的 Deepin Wine 10 前缀迁移备份，拒绝重复覆盖：%s\n' \
-        "${backup_dir}" >&2
-    exit 73
+    if [[ ! -L "${backup_dir}" ]] && \
+       [[ -d "${backup_dir}/system32" ]] && \
+       [[ -d "${backup_dir}/syswow64" ]] && \
+       [[ -f "${backup_dir}/wine-engine" ]] && \
+       [[ "$(<"${backup_dir}/wine-engine")" == "${wine11_engine_version}" ]] && \
+       [[ -f "${engine_marker}" ]] && \
+       [[ "$(<"${engine_marker}")" == "${wine11_engine_version}" ]]; then
+        reuse_existing_backup=1
+    else
+        printf '检测到无法安全复用的 Deepin Wine 10 前缀迁移备份：%s\n' \
+            "${backup_dir}" >&2
+        exit 73
+    fi
 fi
 
-install -d "${backup_dir}"
-cp -a "${windows_dir}/system32" "${backup_dir}/system32"
-cp -a "${windows_dir}/syswow64" "${backup_dir}/syswow64"
-if [[ -f "${engine_marker}" ]]; then
-    cp -a "${engine_marker}" "${backup_dir}/wine-engine"
+if (( reuse_existing_backup == 0 )); then
+    install -d "${backup_dir}"
+    cp -a "${windows_dir}/system32" "${backup_dir}/system32"
+    cp -a "${windows_dir}/syswow64" "${backup_dir}/syswow64"
+    if [[ -f "${engine_marker}" ]]; then
+        cp -a "${engine_marker}" "${backup_dir}/wine-engine"
+    fi
 fi
 
 rollback_migration() {

@@ -15,6 +15,7 @@ check:
 	@bash -n scripts/install-release.sh.in
 	@bash tests/wecom-host-open.sh
 	@bash tests/wecom-proxy-environment.sh
+	@bash tests/emoji-font-configuration.sh
 	@bash tests/deepin-first-launch.sh
 	@bash tests/install-user-integration.sh
 	@if command -v appstreamcli >/dev/null 2>&1; then \

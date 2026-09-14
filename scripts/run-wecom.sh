@@ -26,10 +26,13 @@ if [[ ! -s "${PROGRAM_FILE}" ]]; then
     exit 4
 fi
 
-# A direct launch from the Flatpak-exported desktop file does not own this
-# service's host lock.  Avoid starting another client against the same prefix.
-if flatpak ps --columns=application 2>/dev/null | \
-   grep -Fxq "${ACTIVE_FLATPAK_APP}"; then
+# The Deepin package has a Flatpak-exported desktop file whose direct launch
+# does not own this service's host lock.  Other runners briefly create helper
+# Flatpak instances while configuring RichEdit, so only apply this duplicate
+# check to the Deepin runner.
+if [[ "${ACTIVE_FLATPAK_APP}" == "${DEEPIN_FLATPAK_APP}" ]] && \
+   flatpak ps --columns=application 2>/dev/null | \
+       grep -Fxq "${ACTIVE_FLATPAK_APP}"; then
     write_status "${STATUS_FILE}" "already-running" \
         "flatpak=${ACTIVE_FLATPAK_APP}"
     exit 0
@@ -69,9 +72,8 @@ image_clipboard_bridge_pid=''
 stop_requested=0
 wecom_runtime_args=()
 
-# The Deepin application payload now uses the same Wine 11 software-rendering
-# path as the historically validated runner. URI handoff then reaches
-# winebrowser and the Flatpak OpenURI portal.
+# Keep the Deepin 5.0.7 client on software rendering while its complete,
+# ABI-matched Wine 10 engine owns the window and graphics stack.
 if (( deepin_official_baseline == 1 )); then
     wecom_runtime_args+=(--disable-gpu)
 fi
@@ -171,9 +173,11 @@ FLATPAK_INSTANCE_ID_FD=8 \
         }
 
         # The host systemd launcher invokes Wine directly instead of the
-        # Flatpak default command. Keep received-attachment associations in
-        # sync on this path too; the in-prefix marker makes this a no-op after
-        # the first successful configuration.
+        # Flatpak default command. Keep prefix-local font fallback and
+        # received-attachment associations in sync on this path too.
+        if [ -x /app/share/wecom-deepin/configure-emoji-font.sh ]; then
+            /app/share/wecom-deepin/configure-emoji-font.sh
+        fi
         if [ -x /app/share/wecom-deepin/configure-host-file-open.sh ]; then
             /app/share/wecom-deepin/configure-host-file-open.sh
         fi

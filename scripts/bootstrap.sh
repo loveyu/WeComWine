@@ -94,7 +94,18 @@ if [[ "${ACTIVE_FLATPAK_APP}" == "${PORTAL_FLATPAK_APP}" ]]; then
 else
     flatpak_wine wineboot --update
     flatpak_wine wineserver --wait
-    flatpak_wine winecfg -v win10
+    winecfg_exit=0
+    flatpak_wine winecfg -v win10 || winecfg_exit=$?
+    if (( winecfg_exit != 0 )); then
+        current_windows_version="$(flatpak_wine wine cmd.exe /c ver | tr -d '\r')"
+        if [[ "${current_windows_version}" != *'Windows 10.0.'* ]]; then
+            printf 'winecfg 设置 Windows 10 失败：exit=%s current=%s\n' \
+                "${winecfg_exit}" "${current_windows_version}" >&2
+            exit "${winecfg_exit}"
+        fi
+        printf 'winecfg 返回 %s，但前缀已是 Windows 10，继续初始化。\n' \
+            "${winecfg_exit}"
+    fi
     flatpak_wine wine reg.exe add 'HKCU\Software\Wine\X11 Driver' /v UseXIM /t REG_SZ /d Y /f
     flatpak_wine wine reg.exe add 'HKCU\Software\Wine\X11 Driver' /v InputStyle /t REG_SZ /d overthespot /f
     flatpak_wine wineserver --wait

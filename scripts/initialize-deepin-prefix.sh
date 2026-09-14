@@ -4,16 +4,17 @@ set -Eeuo pipefail
 
 : "${WINEPREFIX:?WINEPREFIX 未设置}"
 
-readonly package_version="5.0.0.6008deepin8"
+readonly package_version="5.0.7.6005deepin11"
 readonly archive="/app/share/wecom-deepin/adapter/files.7z"
-readonly expected_exe_sha256="477ac04a7e63d915f44702861f557336528dbef2060b18b8a7b9367fd9da0654"
+readonly expected_exe_sha256="67419f5b75e4e9e4731061cf9e04fdeaca0e24f080abd8090aa90ee1824049c9"
 readonly program_relative="drive_c/Program Files (x86)/WXWork/WXWork.exe"
 readonly marker="${WINEPREFIX}/.deepin-wecom-package"
 readonly legacy_lock="${WINEPREFIX}/.wecom-launch.lock"
 
-if [[ -f "${marker}" ]] && [[ "$(<"${marker}")" == "${package_version}" ]] && \
-   [[ -f "${WINEPREFIX}/${program_relative}" ]]; then
-    exit 0
+if [[ -f "${marker}" ]] && [[ -f "${WINEPREFIX}/${program_relative}" ]]; then
+    if [[ "$(<"${marker}")" == "${package_version}" ]]; then
+        exit 0
+    fi
 fi
 
 # Versions before the external launch lock fix could leave a new prefix with
