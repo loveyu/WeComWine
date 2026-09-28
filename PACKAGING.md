@@ -42,7 +42,8 @@ XDG Desktop Portal 系统选择器按次授权，不回退到 Wine 文件选择�
 包内企业微信 5.0.7 使用窄匹配 CEF 兼容补丁；启动环境固定
 `WINE_WMCLASS=com.qq.weixin.work.deepin`。独立的宿主顶栏服务也兼容既有
 `WM_CLASS=Wine` 窗口，仅在最大化主窗口失去焦点时隐藏其独立 ARGB 自绘顶栏，
-避免覆盖其他应用右上角。
+避免覆盖其他应用右上角；若最大化主窗口同时带有错误的全屏标记，则仅撤销全屏，
+使 KWin 按工作区边界保留桌面底部面板。
 
 预制前缀中指向 `/opt/deepin-wine10-stable` 的 Wine 内置模块链接会映射到
 `/app/deepin-wine10-stable`；从旧 Wine 11 单包切回时也只重写这些生成的符号链接，

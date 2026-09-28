@@ -159,10 +159,12 @@ coreutils `stdbuf`，缺失时只记录提示，不影响企业微信启动。�
 即使从 Flatpak 桌面图标直接启动企业微信也会生效。它只匹配属于最大化企业微信
 主窗口、宽度与主窗口相同且高度为 24～96 像素的 ARGB `override-redirect`
 对话框；菜单、普通对话框和其他应用不会命中。切走企业微信时取消映射，重新
-激活时恢复映射，因而不会用透明度掩盖仍可截获点击的窗口。可在该用户服务的
+激活时恢复映射，因而不会用透明度掩盖仍可截获点击的窗口。若自绘最大化按钮
+同时错误设置了全屏状态，服务会仅撤销全屏标记，保留最大化并让 KWin 按工作区
+重新布局，避免覆盖桌面底部面板。可在该用户服务的
 systemd override 中设置 `WECOM_MANAGE_TITLEBAR_OVERLAY=0` 关闭兼容处理。该功能
-依赖宿主已有的 `xdotool`、`xprop`、`xwininfo` 和 coreutils `stdbuf`，缺失时
-自动降级，不阻止企业微信启动。
+依赖宿主已有的 `xdotool`、`xprop`、`xwininfo` 和 coreutils `stdbuf`，工作区修正
+另需 `wmctrl`；缺失时自动降级，不阻止企业微信启动。
 
 Deepin Flatpak 的启动入口在独立前缀内持有非阻塞文件锁；重复点击桌面图标会
 直接复用当前运行状态，不会再次启动 `WXWork.exe`。Deepin runner 生效时，用户

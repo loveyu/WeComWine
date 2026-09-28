@@ -8,6 +8,7 @@ readonly ACTIVE_WINDOW_PROPERTY="_NET_ACTIVE_WINDOW"
 readonly CLIENT_LIST_PROPERTY="_NET_CLIENT_LIST_STACKING"
 event_pid=''
 cleanup_started=0
+wmctrl_available=0
 declare -A hidden_windows=()
 
 log() {
@@ -118,6 +119,27 @@ active_window() {
     '
 }
 
+restore_maximized_work_area() {
+    local owner_id="$1"
+    local owner_properties=''
+
+    (( wmctrl_available != 0 )) || return 0
+    owner_properties="$(window_properties "${owner_id}")" || return 0
+    grep -Eq '^_NET_WM_STATE.*_NET_WM_STATE_MAXIMIZED_VERT' \
+        <<< "${owner_properties}" || return 0
+    grep -Eq '^_NET_WM_STATE.*_NET_WM_STATE_MAXIMIZED_HORZ' \
+        <<< "${owner_properties}" || return 0
+    grep -Eq '^_NET_WM_STATE.*_NET_WM_STATE_FULLSCREEN' \
+        <<< "${owner_properties}" || return 0
+
+    # The custom maximize button can leave both maximized and fullscreen
+    # hints on the main window. Ask the WM to drop only fullscreen so the
+    # maximized geometry is recalculated against the desktop work area.
+    if wmctrl -ir "${owner_id}" -b remove,fullscreen >/dev/null 2>&1; then
+        log "restored work-area owner=${owner_id} removed-state=fullscreen"
+    fi
+}
+
 sync_window() {
     local window_id="$1"
     local current_active_window="$2"
@@ -129,6 +151,7 @@ sync_window() {
         unset 'hidden_windows['"${window_id}"']'
         return 0
     }
+    restore_maximized_work_area "${owner_id}"
     details="$(window_details "${window_id}")" || return 0
     map_state="$(awk '{ print $6 }' <<< "${details}")"
 
@@ -218,6 +241,11 @@ for command_name in xdotool xprop xwininfo awk grep stdbuf sort; do
         exit 69
     fi
 done
+if command -v wmctrl >/dev/null 2>&1; then
+    wmctrl_available=1
+else
+    log 'work-area correction disabled: missing command=wmctrl'
+fi
 
 if [[ -z "${DISPLAY:-}" ]]; then
     log 'disabled: DISPLAY is not set'
