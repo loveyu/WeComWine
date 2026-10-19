@@ -17,6 +17,9 @@ flock -n 9 || exit 75
 APP_DIR="$(mktemp -d "${CACHE_ROOT}/wecom-app.XXXXXX")"
 cp -a --reflink=auto "${SOURCE_DIR}/files" "${APP_DIR}/files"
 cp -a "${SOURCE_DIR}/metadata" "${APP_DIR}/metadata"
+# 已安装部署可能仍带旧菜单词，重建应用层时使用当前源码中的启动文件。
+install -m 0644 "${PROJECT_DIR}/desktop/${APP_ID}.desktop" \
+    "${APP_DIR}/files/share/applications/${APP_ID}.desktop"
 "${SCRIPT_DIR}/use-shared-wine-runtime.sh" "${APP_DIR}"
 flatpak build-finish "${APP_DIR}"
 flatpak build-export --disable-fsync --update-appstream \

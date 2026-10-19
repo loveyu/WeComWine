@@ -1,31 +1,28 @@
 # 局域网 Flatpak 仓库
 
-本文记录企业微信 Deepin 兼容版 Flatpak 的局域网发布、安装、更新和验证方式。
+本文记录企业微信、微信开发者工具和支付宝小程序开发者工具的私有局域网发布。
+三个应用共用一个 Deepin Wine 10.14deepin11 基础包，包含通用字体及 Portal 模块。
 仓库未使用 GPG 签名，只适用于受信任的局域网。
 
 ## 当前拓扑
 
 | 项目 | 当前值 |
 | --- | --- |
-| 应用 ID | `io.github.loveyu.WeComWine.Deepin` |
-| Flatpak 分支 | `stable-25.08` |
-| 企业微信版本 | `5.0.7.6005` |
-| 打包版本 | `20260911.1-5.0.7.6005deepin11` |
-| 内部构建 repo | `~/.local/share/wecom-flatpak-poc/deepin-flatpak-repo` |
+| 共享基础包 | `io.github.loveyu.Wine.Deepin//10.14deepin11-25.08` |
+| 企业微信 | `io.github.loveyu.WeComWine.Deepin//stable-25.08`，5.0.7.6005 |
+| 微信开发者工具 | `io.github.loveyu.WeChatDevToolsWine//stable-25.08`，2.02.2608070 |
+| 支付宝开发者工具 | `io.github.loveyu.AlipayDevToolsWine//stable-25.08`，3.10.5 |
 | 对外 LAN repo | `~/.local/share/flatpak-lan/repo` |
 | HTTP 根目录 | `~/.local/share/flatpak-lan` |
 | systemd 服务 | `flatpak-lan-repo.service` |
 | 仓库地址 | `http://LAN_REPO_HOST:18080/repo/` |
+| 宿主启动集成 | `http://LAN_REPO_HOST:18080/integration/` |
 | 客户端远程名 | `loveyu-lan` |
 | 客户端默认状态 | 禁用，仅在安装或更新时临时启用 |
 
-内部构建 repo 和对外 LAN repo 是两个独立 OSTree 仓库。完成
-`make deepin-flatpak-local` 并不代表局域网客户端已经能看到新版本，还需要将
-appdir 导出到 LAN repo 并更新仓库 summary。
-
-`stable-25.08` 是 Flatpak 分支和运行时兼容线，不是应用版本。应用展示版本由
-AppStream 提供，当前格式为“打包日期及修订号-Deepin 适配包版本”，例如
-`20260911.1-5.0.7.6005deepin11`。
+内部构建 repo 和对外 LAN repo 相互独立。完成本机构建后还需执行发布，
+客户端才能看到新包。分支表示运行时兼容线，实际发布提交见 `integration/refs.tsv`，
+源码提交见 `integration/sources.tsv`。
 
 发布或安装前使用下面的命令确认本机到客户端的实际出口地址，并将后续命令中的
 `LAN_REPO_HOST` 替换为该地址：
@@ -75,48 +72,41 @@ curl -fsSI http://LAN_REPO_HOST:18080/repo/summary
 
 ## 发布新构建
 
-先在源码仓库完成 Deepin 私有包构建，并确认 appdir 已生成：
+先构建共享底包和三个应用层，安装宿主集成，并在本机实际启动验证：
 
 ```bash
-cd /path/to/wecom-wine-flatpak
-make deepin-flatpak-local
-
-test -f \
-  ~/.cache/wecom-flatpak-poc/deepin-engine/build-10.14deepin11-5.0.7.6005deepin11/appdir/metadata
+cd /path/to/wine/wecom-wine-flatpak
+make shared-wecom-app
+make install-user
+make -C ../wechat-devtools-wine-flatpak build-deepin-runner install-user-integration
+make -C ../alipay-devtools-wine-flatpak build-deepin-runner install-user-integration
 ```
 
-将 appdir 导出到对外 LAN repo：
+验证通过后提交三个源码仓库中的变更，再发布已安装的部署：
 
 ```bash
-source_commit="$(git rev-parse --short=7 HEAD)"
-
-flatpak build-export \
-  --disable-fsync \
-  --subject="WeCom 5.0.7.6005 with Deepin Wine 10.14deepin11 (source ${source_commit})" \
-  ~/.local/share/flatpak-lan/repo \
-  ~/.cache/wecom-flatpak-poc/deepin-engine/build-10.14deepin11-5.0.7.6005deepin11/appdir \
-  stable-25.08
-
-flatpak build-update-repo \
-  --generate-static-deltas \
-  --static-delta-jobs=4 \
-  ~/.local/share/flatpak-lan/repo
+make publish-lan
 ```
 
-不要默认添加 `--prune`。保留父提交可以为已安装旧版本的客户端生成增量，也便于
-必要时回滚。
+`scripts/publish-lan-repo.sh` 要求三个源码仓库均无未提交变更，核对三个应用引用的
+共享扩展版本与字体摘要，从用户级 Flatpak repo 导入已安装的四个部署，最后生成
+静态增量并更新 summary。可用 `WECOM_LAN_ROOT` 指定其他私有发布根目录。
 
-发布后确认 ref 和 HTTP summary：
+该入口还会用 `git archive HEAD` 导出三个源码集成包及其校验清单。两个开发者工具
+的 Flatpak 是 Wine 应用层，菜单、下载校验、前缀初始化和单实例启动由宿主脚本完成；
+因此不能只发布薄 Flatpak 而遗漏宿主集成。企业微信的 `.desktop` 在 Flatpak 中，
+共享应用层重建时会同步当前源码中的启动文件。
+
+发布入口不读取用户前缀、聊天数据、项目、凭据或日志，也不清理历史提交。
+运行期间会占用构建所需 CPU；静态增量并行度限制为 2。
+
+发布后检查：
 
 ```bash
-sed -n '1p' \
-  ~/.local/share/flatpak-lan/repo/refs/heads/app/io.github.loveyu.WeComWine.Deepin/x86_64/stable-25.08
-
 curl -fsSI http://LAN_REPO_HOST:18080/repo/summary
+curl -fsS http://LAN_REPO_HOST:18080/integration/refs.tsv
+curl -fsS http://LAN_REPO_HOST:18080/integration/sources.tsv
 ```
-
-`build-update-repo` 可能提示应用缺少 AppStream XML。当前应用仍可按 ID 安装，
-但不会提供完整的应用商店展示信息；该提示不等同于发布失败。
 
 ## 客户端全新安装
 
@@ -129,15 +119,51 @@ flatpak remote-add --user --if-not-exists --no-gpg-verify \
 
 flatpak remote-modify --user --enable loveyu-lan
 flatpak install --user loveyu-lan \
-  io.github.loveyu.WeComWine.Deepin//stable-25.08
+  runtime/io.github.loveyu.Wine.Deepin//10.14deepin11-25.08 \
+  app/io.github.loveyu.WeComWine.Deepin//stable-25.08 \
+  app/io.github.loveyu.WeChatDevToolsWine//stable-25.08 \
+  app/io.github.loveyu.AlipayDevToolsWine//stable-25.08
 flatpak remote-modify --user --disable loveyu-lan
 ```
 
-应用依赖 `org.freedesktop.Platform/x86_64/25.08`。客户端缺少该运行时时，需要有
+三个应用依赖 `org.freedesktop.Platform/x86_64/25.08`。共享 Wine 扩展须显式安装；
+它不能替代 Freedesktop 运行时。企业微信还需要 25.08 的 i386 兼容扩展。客户端缺少该运行时时，需要有
 可用的 Flathub 远程，或者另行提供运行时源。
 
 即使安装失败，也应执行最后一条 `remote-modify --disable`。该 LAN 服务不保证
 持续在线，不应让客户端在日常 Flatpak 刷新时默认访问它。
+
+## 安装宿主启动集成
+
+将三份源码包和校验清单下载到同一目录，校验后解压到稳定目录。启动文件会引用
+该目录中的脚本，安装后不要删除该目录：
+
+```bash
+integration_dir="$HOME/.local/share/wine-app-integrations"
+mkdir -p "$integration_dir"
+cd "$integration_dir"
+for project in wecom-wine-flatpak wechat-devtools-wine-flatpak alipay-devtools-wine-flatpak; do
+  curl -fLO "http://LAN_REPO_HOST:18080/integration/${project}.tar.gz"
+done
+curl -fLO http://LAN_REPO_HOST:18080/integration/SHA256SUMS
+sha256sum --check SHA256SUMS
+for project in wecom-wine-flatpak wechat-devtools-wine-flatpak alipay-devtools-wine-flatpak; do
+  tar -xzf "${project}.tar.gz"
+done
+make -C wecom-wine-flatpak install-user
+make -C wechat-devtools-wine-flatpak install
+make -C alipay-devtools-wine-flatpak install
+```
+
+开发者工具安装入口会从固定地址下载并校验官方安装器，程序写入各自前缀；
+首次安装请等待完成。已有安装若仅更新菜单和启动脚本，改用
+`make install-user-integration`，保留当前程序、登录、项目和设置。企业微信可从
+Flatpak 菜单直接启动，不需要为 Deepin 路径启动旧 baseline 的 bootstrap 服务。
+
+开始菜单提供标准中文名、英文名、拼音全拼和首字母关键词。例如企业微信支持
+`WeCom`、`qiyeweixin`、`qywx`；微信开发者工具支持 `WeChat DevTools`、
+`weixinkaifazhegongju`、`wxkfzgj`；支付宝支持 `Alipay DevTools`、
+`zhifubaokaifazhegongju`、`zfbkfzgj`，以及完整“小程序”名称的拼音。
 
 ## 客户端更新
 
@@ -145,7 +171,11 @@ flatpak remote-modify --user --disable loveyu-lan
 
 ```bash
 flatpak remote-modify --user --enable loveyu-lan
-flatpak update --user io.github.loveyu.WeComWine.Deepin
+flatpak update --user \
+  runtime/io.github.loveyu.Wine.Deepin//10.14deepin11-25.08 \
+  app/io.github.loveyu.WeComWine.Deepin//stable-25.08 \
+  app/io.github.loveyu.WeChatDevToolsWine//stable-25.08 \
+  app/io.github.loveyu.AlipayDevToolsWine//stable-25.08
 flatpak remote-modify --user --disable loveyu-lan
 ```
 
@@ -174,7 +204,8 @@ flatpak info --user --show-commit \
   io.github.loveyu.WeComWine.Deepin
 ```
 
-两者提交一致表示客户端已更新到 LAN repo 当前版本。随后可启动应用做业务验证：
+两者提交一致表示客户端已更新到 LAN repo 当前版本。还应按 `integration/refs.tsv`
+核对共享基础包和另两个应用的提交。随后可启动应用做业务验证：
 
 ```bash
 flatpak run io.github.loveyu.WeComWine.Deepin
@@ -226,5 +257,6 @@ fi
 kbuildsycoca6 --noincremental
 ```
 
-不要把企业微信安装器、Wine 前缀、登录数据、聊天数据或凭据复制到公开仓库。
+更新和卸载禁止使用 `--delete-data`，也不要删除现有 Wine 前缀和工作区。
+不要把安装器、Wine 前缀、登录数据、聊天数据、项目或凭据复制到公开仓库。
 LAN repo 包含不可公开再分发的私有二进制，只能在授权范围内使用。

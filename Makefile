@@ -6,7 +6,7 @@ DIST_DIR ?= dist
 SOURCE_DATE_EPOCH ?= 0
 ARCHIVE := $(DIST_DIR)/$(PROJECT)-$(VERSION).tar.gz
 
-.PHONY: all check install-user flatpak-bundles shared-wine-runtime shared-wecom-app deepin-wine10-portal deepin-flatpak-local dist clean
+.PHONY: all check install-user flatpak-bundles shared-wine-runtime shared-wecom-app deepin-wine10-portal deepin-flatpak-local publish-lan dist clean
 
 all: check
 
@@ -54,6 +54,9 @@ shared-wine-runtime: check
 
 shared-wecom-app: check
 	@./scripts/build-shared-wecom-app.sh
+
+publish-lan: check
+	@bash scripts/publish-lan-repo.sh
 
 deepin-flatpak-local: check
 	@./scripts/build-deepin-wine-flatpak.sh
