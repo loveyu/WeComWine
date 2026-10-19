@@ -12,10 +12,10 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
 保留为历史兼容性验证记录。
 仓库构建目标已跟进 Wine 11.16，完整 runner 构建和登录态回归仍单独记录。
 
-企业微信与微信开发者工具现可共用独立基础包
+企业微信、微信开发者工具和支付宝开发者工具现可共用独立基础包
 `io.github.loveyu.Wine.Deepin//10.14deepin11-25.08`。它以 Flatpak 扩展挂载到各自的
 `/app/shared-wine`，包含匹配的 Deepin 引擎、wineserver、Portal 模块、适配驱动和原生
-运行库；不包含企业微信客户端、预制前缀或账号。两个应用仍使用不同 App ID、前缀、
+运行库和常用字体；不包含企业微信客户端、预制前缀或账号。三个应用仍使用不同 App ID、前缀、
 用户数据和进程，分别更新应用层。底层 ABI 升级时使用新版本分支，回归后再切换应用引用。
 
 ```bash
@@ -25,7 +25,15 @@ make shared-wecom-app    # 将已安装企业微信重新封装为引用基础�
 
 `make deepin-flatpak-local` 的完整构建也会自动生成同一基础包和企业微信应用层，保留完整
 构建缓存供后续增量编译。正在运行的企业微信实例继续使用原部署，下次启动加载共享包。
-微信开发者工具在自己的仓库运行 `make build-deepin-runner` 引用同一基础包。
+两个开发者工具在各自仓库运行 `make build-deepin-runner` 引用同一基础包。
+
+共享包直接在 Wine 的字体目录中提供 Arial、Segoe UI、微软雅黑、宋体、Consolas、
+Times New Roman、符号和 emoji 等常见字体，并补充 Noto CJK 与 DejaVu 回退。
+默认从本机 `/usr/share/fonts/win10-fonts` 读取 Windows 字体，也可设置
+`SHARED_WINE_WINDOWS_FONTS=/path/to/Fonts`；附加字体目录使用
+`SHARED_WINE_EXTRA_FONTS=/path/to/fonts`。字体只进入本机基础包，源码仓库不保存字体文件。
+每次构建在 `share/shared-wine/fonts.sha256` 中记录实际字体及摘要；应用前缀直接引用
+基础包中的文件。已有瘦应用层也可以再次运行 `make shared-wine-runtime` 更新公共资源。
 
 ## 已验证能力
 
@@ -46,7 +54,7 @@ make shared-wecom-app    # 将已安装企业微信重新封装为引用基础�
   X11 `image/bmp`，使 Wine 可继续合成 `CF_DIB` 和 `CF_ENHMETAFILE`；
   文本剪贴板不受影响。
 - Fcitx5/XIM 预编辑、候选和中文上屏；候选框模式为 `overthespot`。
-- 只读复用宿主 Noto Sans CJK SC，不复制或安装大型字体包。
+- Deepin 共享包内置常用字体，独立 Wine 11 runner 继续只读复用宿主 Noto Sans CJK SC。
 - 每次启动读取 KDE/X11 的 `Xft.dpi` 并设置 Wine `LogPixels`，跟随系统缩放。
 - 窗口阴影抑制器默认关闭，避免外部写入窗口 opacity 属性干扰企业微信窗口和
   图片聊天重绘；仅保留显式诊断开关，不修改 KDE 全局阴影。

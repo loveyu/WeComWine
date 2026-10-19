@@ -157,7 +157,7 @@ patch_signature="$(
         sha256sum "${patch_files[@]}"
     } | sha256sum | awk '{print $1}'
 )"
-build_signature="${patch_signature}:new-wow64-v1"
+build_signature="${patch_signature}:new-wow64-shell32-v2"
 if [[ ! -f "${SOURCE_DIR}/.portal-patched" ]] || \
    [[ "$(<"${SOURCE_DIR}/.portal-patched")" != "${patch_signature}" ]]; then
     preserve_path "${SOURCE_DIR}"
@@ -179,6 +179,8 @@ output_paths=(
     "build64/dlls/comdlg32/x86_64-windows/comdlg32.dll"
     "build64/dlls/comdlg32/comdlg32.so"
     "build32/dlls/comdlg32/i386-windows/comdlg32.dll"
+    "build64/dlls/shell32/x86_64-windows/shell32.dll"
+    "build32/dlls/shell32/i386-windows/shell32.dll"
 )
 if [[ -f "${BUILD_ROOT}/.complete" ]] && \
    [[ "$(<"${BUILD_ROOT}/.complete")" == "${build_signature}" ]] && \
@@ -228,7 +230,7 @@ flatpak build \
                 --disable-tests \
                 --without-opencl
         fi
-        make -j"${BUILD_JOBS}" dlls/comdlg32/all
+        make -j"${BUILD_JOBS}" dlls/comdlg32/all dlls/shell32/x86_64-windows/shell32.dll
     '
 
 write_status "${STATUS_FILE}" build-wine32 "jobs=${BUILD_JOBS}"
@@ -255,7 +257,8 @@ flatpak build \
                 --disable-tests \
                 --without-opencl
         fi
-        make -j"${BUILD_JOBS}" dlls/comdlg32/i386-windows/comdlg32.dll
+        make -j"${BUILD_JOBS}" dlls/comdlg32/i386-windows/comdlg32.dll \
+            dlls/shell32/i386-windows/shell32.dll
     '
 
 write_status "${STATUS_FILE}" verify-output "comdlg32 32/64-bit PE + 64-bit Unix"
@@ -267,6 +270,12 @@ verify_output_type \
     'ELF 64-bit.*x86-64'
 verify_output_type \
     "${BUILD32_DIR}/dlls/comdlg32/i386-windows/comdlg32.dll" \
+    'PE32 executable.*Intel (i386|80386)'
+verify_output_type \
+    "${BUILD64_DIR}/dlls/shell32/x86_64-windows/shell32.dll" \
+    'PE32[+] executable.*x86-64'
+verify_output_type \
+    "${BUILD32_DIR}/dlls/shell32/i386-windows/shell32.dll" \
     'PE32 executable.*Intel (i386|80386)'
 
 (cd "${BUILD_ROOT}" && sha256sum "${output_paths[@]}") > "${OUTPUT_MANIFEST}"

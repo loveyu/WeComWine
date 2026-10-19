@@ -13,9 +13,9 @@
 
 当前 Deepin 交付拆成共享基础包和应用层两个 Flatpak：
 
-- `runtime/io.github.loveyu.Wine.Deepin//10.14deepin11-25.08`：独立 Wine 扩展，供企业微信
-  和微信开发者工具通过 `/app/shared-wine` 共用。只包含引擎、ABI 匹配的适配 DLL、原生
-  依赖和 Wine 辅助资源；来源 commit、模块摘要保存在 `share/shared-wine/source.txt`。
+- `runtime/io.github.loveyu.Wine.Deepin//10.14deepin11-25.08`：独立 Wine 扩展，供企业微信、
+  微信开发者工具和支付宝开发者工具通过 `/app/shared-wine` 共用。包含引擎、ABI 匹配的适配 DLL、原生
+  依赖、Wine 辅助资源和常用字体；来源 commit、模块摘要保存在 `share/shared-wine/source.txt`。
 - `app/io.github.loveyu.WeComWine.Deepin//stable-25.08`：企业微信应用层，通过兼容链接保持
   既有 `/app/deepin-wine10-stable` 等路径有效，前缀和登录态不需要随拆包迁移。
 
@@ -97,7 +97,10 @@ make deepin-flatpak-local
   Flatpak。构建过程不再获取腾讯 5.0.10 安装包。生成物位于
   `artifacts/deepin-private/`，含官方适配二进制，仅限本机测试，不进入公开 CI、
   GitHub Release 或项目 Flatpak 仓库。
-- `make shared-wine-runtime` 从本机现有完整 Deepin 包提取共享底层；`make shared-wecom-app`
+- `make shared-wine-runtime` 从本机现有完整 Deepin 包提取共享底层，或基于已安装基础包更新
+  公共资源。字体取自本机 Windows 字体目录及 Noto/DejaVu，并记录 `fonts.sha256`，字体二进制
+  只进入本机私有包。Wine 10 Portal 同时构建并安装 `comdlg32` 和 `shell32`，覆盖旧式目录选择；
+  `make shared-wecom-app`
   只重新封装已安装的企业微信，不下载或升级客户端。完整构建同时导出基础包和应用层，
   基础包私有仓库默认位于 `~/.local/share/shared-wine-flatpak/repo`。跨机安装须先安装
   基础包，再安装应用层；完整构建在 `artifacts/deepin-private/` 同时生成两个 bundle
