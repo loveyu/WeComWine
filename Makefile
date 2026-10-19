@@ -6,7 +6,7 @@ DIST_DIR ?= dist
 SOURCE_DATE_EPOCH ?= 0
 ARCHIVE := $(DIST_DIR)/$(PROJECT)-$(VERSION).tar.gz
 
-.PHONY: all check install-user flatpak-bundles deepin-flatpak-local dist clean
+.PHONY: all check install-user flatpak-bundles shared-wine-runtime shared-wecom-app deepin-wine10-portal deepin-flatpak-local dist clean
 
 all: check
 
@@ -17,6 +17,8 @@ check:
 	@bash tests/wecom-proxy-environment.sh
 	@bash tests/emoji-font-configuration.sh
 	@bash tests/deepin-first-launch.sh
+	@bash tests/deepin-portal-isolation.sh
+	@bash tests/shared-wine-runtime.sh
 	@bash tests/wecom-window-integration.sh
 	@bash tests/install-user-integration.sh
 	@if command -v appstreamcli >/dev/null 2>&1; then \
@@ -31,6 +33,7 @@ check:
 	fi
 	@python3 -c 'from pathlib import Path; paths = [Path("scripts/generate-appstream-catalog.py"), Path("scripts/manage-wecom-window-icon.py")]; [compile(path.read_text(), str(path), "exec") for path in paths]'
 	@test "$$(find patches/wine-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 17
+	@test "$$(find patches/wine10-portal -maxdepth 1 -type f -name '*.patch' | wc -l)" -eq 1
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
 		git ls-files | grep -Eiq '\.(7z|deb|exe|msi|dll|bundle|flatpak)$$'; then \
 		echo '错误：仓库中不能包含安装包或二进制发行制品' >&2; exit 1; \
@@ -42,6 +45,15 @@ install-user: check
 
 flatpak-bundles: check
 	@./scripts/package-flatpaks.sh
+
+deepin-wine10-portal: check
+	@./scripts/build-deepin-wine10-portal.sh
+
+shared-wine-runtime: check
+	@./scripts/build-shared-wine-runtime.sh
+
+shared-wecom-app: check
+	@./scripts/build-shared-wecom-app.sh
 
 deepin-flatpak-local: check
 	@./scripts/build-deepin-wine-flatpak.sh

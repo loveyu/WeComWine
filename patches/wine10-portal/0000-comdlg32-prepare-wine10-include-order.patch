@@ -1,0 +1,36 @@
+From: wecom-wine-flatpak <noreply@example.invalid>
+Subject: [PATCH] comdlg32: prepare Wine 10 include order for portal backport
+
+Keep the Wine 10 heap helper includes while placing them outside the context
+used by the Wine 11 portal patch.  This makes the shared portal patch apply
+cleanly without changing the resulting declarations.
+---
+ dlls/comdlg32/cdlg32.c  | 2 +-
+ dlls/comdlg32/filedlg.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/comdlg32/cdlg32.c b/dlls/comdlg32/cdlg32.c
+--- a/dlls/comdlg32/cdlg32.c
++++ b/dlls/comdlg32/cdlg32.c
+@@ -30,7 +30,7 @@
+ #include "rpcproxy.h"
+ #include "commdlg.h"
++#include "wine/heap.h"
+ #include "cderr.h"
+ #include "wine/debug.h"
+-#include "wine/heap.h"
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
+diff --git a/dlls/comdlg32/filedlg.c b/dlls/comdlg32/filedlg.c
+--- a/dlls/comdlg32/filedlg.c
++++ b/dlls/comdlg32/filedlg.c
+@@ -66,8 +66,8 @@
+ #include "shlobj.h"
+ #include "filedlgbrowser.h"
++#include "wine/heap.h"
+ #include "shlwapi.h"
+ 
+ #include "wine/debug.h"
+-#include "wine/heap.h"
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(commdlg);

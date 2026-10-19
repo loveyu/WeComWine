@@ -12,6 +12,21 @@ Fcitx5 输入法和 systemd 无人值守管理。本仓库是后续生成独立�
 保留为历史兼容性验证记录。
 仓库构建目标已跟进 Wine 11.16，完整 runner 构建和登录态回归仍单独记录。
 
+企业微信与微信开发者工具现可共用独立基础包
+`io.github.loveyu.Wine.Deepin//10.14deepin11-25.08`。它以 Flatpak 扩展挂载到各自的
+`/app/shared-wine`，包含匹配的 Deepin 引擎、wineserver、Portal 模块、适配驱动和原生
+运行库；不包含企业微信客户端、预制前缀或账号。两个应用仍使用不同 App ID、前缀、
+用户数据和进程，分别更新应用层。底层 ABI 升级时使用新版本分支，回归后再切换应用引用。
+
+```bash
+make shared-wine-runtime  # 从当前完整企业微信包提取并安装共享基础包
+make shared-wecom-app    # 将已安装企业微信重新封装为引用基础包的应用层
+```
+
+`make deepin-flatpak-local` 的完整构建也会自动生成同一基础包和企业微信应用层，保留完整
+构建缓存供后续增量编译。正在运行的企业微信实例继续使用原部署，下次启动加载共享包。
+微信开发者工具在自己的仓库运行 `make build-deepin-runner` 引用同一基础包。
+
 ## 已验证能力
 
 - Wine 11.16 传统 WoW64 构建配置，支持企业微信 32 位主程序和 64 位辅助组件；
@@ -59,6 +74,7 @@ Portal 文件入口、外部浏览器和内置 CEF 网页已完成当前 Wine 11
 | 路径 | 用途 |
 | --- | --- |
 | `patches/wine-portal/` | Wine Portal 补丁及长路径修正 |
+| `patches/wine10-portal/` | Wine 10.14 回移所需的最小兼容补丁 |
 | `scripts/` | 构建、安装、切换、回滚、运行和验证 |
 | `tests/` | Win32 Portal/IME smoke test 和 X11 输入驱动 |
 | `flatpak/` | Flatpak 依赖与补丁来源记录 |
@@ -182,8 +198,10 @@ user-driver 版本不匹配或 USER 锁断言，而完整 Deepin 引擎可将
 `SearchResultWindow2` 从 1×1 未映射状态正确映射为搜索结果窗口。
 
 企业微信 CEF 继续传入 `--disable-gpu` 使用软件渲染。独立 Wine 11 Portal runner
-仍保留固定摘要校验的 32/64 位 `comdlg32` 和 Explorer 补丁；Deepin 单包切回完整
-Wine 10 后，文件选择、外部链接、打开附件所在目录和内置更新需要重新做一轮回归。
+仍保留固定摘要校验的 32/64 位 `comdlg32` 和 Explorer 补丁；Deepin 单包使用独立
+Wine 10.14 源码构建的 32/64 位 Portal `comdlg32` PE 和 64 位 Unix 模块，并覆盖包内
+`WINEPREDLL` 的同名 PE 模块，避免企业微信误载 Wine 11 ABI。两个开发者工具的
+Wine 11.17 构建目录不参与该构建。
 
 企业微信具有独立的代理配置和连接路由，正式启动入口默认清除继承自宿主的
 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY` 等大小写环境变量，避免

@@ -28,6 +28,12 @@
   </provides>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="20260917.1-5.0.7.6005deepin11" date="2026-09-17">
+      <description>
+        <p>Use ABI-matched Wine 10.14 Portal dialog modules for the Deepin WeCom file chooser.</p>
+        <p xml:lang="zh-CN">为 Deepin 企业微信文件选择器使用 ABI 匹配的 Wine 10.14 Portal 对话框模块。</p>
+      </description>
+    </release>
     <release version="20260911.1-5.0.7.6005deepin11" date="2026-09-11">
       <description>
         <p>Bundle and register an outline Noto Emoji fallback so emoji no longer render as missing-glyph boxes.</p>

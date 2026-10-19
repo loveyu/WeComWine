@@ -23,8 +23,8 @@ readonly WECOM_ADAPTER_URL="https://pro-store-packages.uniontech.com/appstore/po
 readonly WECOM_ADAPTER_WININET32_SHA256="c629a1b069bf266b09d1bd41edbd2652ded5099049cb31c48f3091e4675f6984"
 readonly WECOM_ADAPTER_WININET64_SHA256="ff2cf72f844e59f0430fea93e051d956fff33541871149e2fec39fc4c9b7089e"
 readonly WECOM_ADAPTER_WINESERVER_SHA256="384cb295924d70b6f59f10e744b39b15c47e0f5000bf2e92acab07302859d99f"
-readonly PACKAGE_DATE="20260911.1"
-readonly PACKAGE_RELEASE_DATE="2026-09-11"
+readonly PACKAGE_DATE="20260917.1"
+readonly PACKAGE_RELEASE_DATE="2026-09-17"
 readonly PACKAGE_VERSION="${PACKAGE_DATE}-${WECOM_ADAPTER_VERSION}"
 readonly FONT_VERSION="0.2.0-beta-3.1"
 readonly FONT_PACKAGE_SHA256="fc23a97e13c0ac783b96710e2ed8e28d8aa34392cc10f3725d0e020392fb0a8a"
@@ -79,6 +79,7 @@ LIBXML2_DEB="${CACHE_ROOT}/libxml2_2.9.14+dfsg-1.3+rb2_amd64.deb"
 LIBICU74_DEB="${CACHE_ROOT}/libicu74_74.2-1deepin1_amd64.deb"
 PORTAL_WINE_FILES="${WECOM_PORTAL_WINE_FILES:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11/appdir/files}"
 PORTAL_DIALOG_BUILD="${WECOM_PORTAL_DIALOG_BUILD:-${XDG_CACHE_HOME}/wecom-flatpak-poc/portal-build/11.16-mr10060-f36314a-wecom11}"
+WINE10_PORTAL_BUILD="${WECOM_DEEPIN_WINE10_PORTAL_BUILD:-${XDG_CACHE_HOME}/wecom-flatpak-poc/deepin-wine10-portal/10.14-mr10060-wine10-wecom1}"
 BUNDLE_FILE="${ARTIFACT_DIR}/${APP_ID}-${PACKAGE_VERSION}-x86_64.flatpak"
 
 require_command() {
@@ -123,6 +124,9 @@ for required_command in 7z curl dpkg-deb flatpak python3 sha256sum; do
     require_command "${required_command}"
 done
 
+WECOM_DEEPIN_WINE10_PORTAL_BUILD="${WINE10_PORTAL_BUILD}" \
+    "${SCRIPT_DIR}/build-deepin-wine10-portal.sh"
+
 for required_path in \
     "${PORTAL_WINE_FILES}/bin/wine" \
     "${PORTAL_WINE_FILES}/bin/wineserver" \
@@ -160,6 +164,28 @@ for portal_dialog_file in "${!portal_dialog_files[@]}"; do
     printf '%s  %s\n' "${portal_dialog_files["${portal_dialog_file}"]}" \
         "${portal_dialog_file}" | sha256sum --check -
 done
+
+wine10_portal_dialog_files=(
+    "build64/dlls/comdlg32/x86_64-windows/comdlg32.dll"
+    "build64/dlls/comdlg32/comdlg32.so"
+    "build32/dlls/comdlg32/i386-windows/comdlg32.dll"
+)
+if [[ ! -f "${WINE10_PORTAL_BUILD}/output.sha256" ]]; then
+    printf '缺少 Wine 10 Portal 输出清单：%s\n' \
+        "${WINE10_PORTAL_BUILD}/output.sha256" >&2
+    exit 69
+fi
+(cd "${WINE10_PORTAL_BUILD}" && sha256sum --check "output.sha256")
+for wine10_portal_dialog_file in "${wine10_portal_dialog_files[@]}"; do
+    if [[ ! -f "${WINE10_PORTAL_BUILD}/${wine10_portal_dialog_file}" ]]; then
+        printf '缺少已验证的 Wine 10 Portal 对话框模块：%s\n' \
+            "${WINE10_PORTAL_BUILD}/${wine10_portal_dialog_file}" >&2
+        exit 69
+    fi
+done
+WINE10_PORTAL_COMDLG64_DLL_SHA256="$(sha256sum "${WINE10_PORTAL_BUILD}/${wine10_portal_dialog_files[0]}" | awk '{print $1}')"
+WINE10_PORTAL_COMDLG64_SO_SHA256="$(sha256sum "${WINE10_PORTAL_BUILD}/${wine10_portal_dialog_files[1]}" | awk '{print $1}')"
+WINE10_PORTAL_COMDLG32_DLL_SHA256="$(sha256sum "${WINE10_PORTAL_BUILD}/${wine10_portal_dialog_files[2]}" | awk '{print $1}')"
 
 declare -A portal_explorer_files=(
     ["${PORTAL_DIALOG_BUILD}/build64/programs/explorer/x86_64-windows/explorer.exe"]="${PORTAL_EXPLORER64_SHA256}"
@@ -299,7 +325,7 @@ project_payload_sha256="$(
         icons/hicolor/256x256/apps/io.github.loveyu.WeComWine.png | \
         sha256sum | awk '{print $1}'
 )"
-build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_ADAPTER_WINESERVER_SHA256}:${FONT_PACKAGE_SHA256}:${EMOJI_FONT_SHA256}:${EMOJI_FONT_LICENSE_SHA256}:${runtime_dependency_signature}:${project_payload_sha256}:normal-mode-v32-emoji-font"
+build_signature="${APP_ID}:${ENGINE_SHA256}:${PORTAL_WINE_BINARY_SHA256}:${PORTAL_COMDLG64_DLL_SHA256}:${PORTAL_COMDLG64_SO_SHA256}:${PORTAL_COMDLG32_DLL_SHA256}:${PORTAL_COMDLG32_SO_SHA256}:${PORTAL_EXPLORER64_SHA256}:${PORTAL_EXPLORER32_SHA256}:${WINE10_PORTAL_COMDLG64_DLL_SHA256}:${WINE10_PORTAL_COMDLG64_SO_SHA256}:${WINE10_PORTAL_COMDLG32_DLL_SHA256}:${WECOM_ADAPTER_SHA256}:${WECOM_ADAPTER_WININET32_SHA256}:${WECOM_ADAPTER_WININET64_SHA256}:${WECOM_ADAPTER_WINESERVER_SHA256}:${FONT_PACKAGE_SHA256}:${EMOJI_FONT_SHA256}:${EMOJI_FONT_LICENSE_SHA256}:${runtime_dependency_signature}:${project_payload_sha256}:normal-mode-v34-wine10-portal-new-wow64"
 if [[ -f "${APP_DIR}/metadata" ]] && \
    { [[ ! -f "${BUILD_ROOT}/signature" ]] || \
      [[ "$(<"${BUILD_ROOT}/signature")" != "${build_signature}" ]]; }; then
@@ -332,6 +358,7 @@ install -d \
 flatpak build \
     --bind-mount="/run/portal-wine=${PORTAL_WINE_FILES}" \
     --bind-mount="/run/portal-dialog-build=${PORTAL_DIALOG_BUILD}" \
+    --bind-mount="/run/wine10-portal-build=${WINE10_PORTAL_BUILD}" \
     --bind-mount="/run/deepin-engine=${engine_source}" \
     --bind-mount="/run/deepin-helper=${helper_source}" \
     --bind-mount="/run/deepin-runtime=${runtime_extract}" \
@@ -412,6 +439,25 @@ flatpak build \
         # pre-run/update helpers. Do not overlay a newer Tencent installer:
         # the client and compatibility modules are shipped as a matched set.
         cp -a /run/wecom-adapter/. /app/share/wecom-deepin/adapter/
+        # WINEPREDLL gives the application adapter priority over the engine.
+        # Overlay the Wine 10 PE modules there as well as the matching PE/Unix
+        # pairs in the Deepin Wine 10 engine. Never load the Wine 11 comdlg32
+        # pair in the enterprise WeCom process.
+        install -m 0644 \
+            /run/wine10-portal-build/build64/dlls/comdlg32/x86_64-windows/comdlg32.dll \
+            /app/deepin-wine10-stable/lib/wine/x86_64-windows/comdlg32.dll
+        install -m 0755 \
+            /run/wine10-portal-build/build64/dlls/comdlg32/comdlg32.so \
+            /app/deepin-wine10-stable/lib/wine/x86_64-unix/comdlg32.so
+        install -m 0644 \
+            /run/wine10-portal-build/build32/dlls/comdlg32/i386-windows/comdlg32.dll \
+            /app/deepin-wine10-stable/lib/wine/i386-windows/comdlg32.dll
+        install -m 0644 \
+            /run/wine10-portal-build/build64/dlls/comdlg32/x86_64-windows/comdlg32.dll \
+            /app/share/wecom-deepin/adapter/dlls/x86_64-windows/comdlg32.dll
+        install -m 0644 \
+            /run/wine10-portal-build/build32/dlls/comdlg32/i386-windows/comdlg32.dll \
+            /app/share/wecom-deepin/adapter/dlls/i386-windows/comdlg32.dll
         # deepin11 adds an application-specific wineserver to WINEPREDLL.  It
         # resolves l_intl.nls relative to its executable, so running it from
         # the adapter/dlls directory makes startup fail inside Flatpak.  Keep
@@ -553,9 +599,23 @@ if [[ ! -f "${BUILD_ROOT}/finished" ]] || \
 fi
 printf '%s\n' "${build_signature}" > "${BUILD_ROOT}/signature"
 
+# Export the shared engine and thin a copy, preserving the full appdir for incremental builds.
+SHARED_WINE_SOURCE_FILES="${APP_DIR}/files" \
+SHARED_WINE_SOURCE_SIGNATURE="${build_signature}" \
+SHARED_WINE_SKIP_INSTALL="${SKIP_INSTALL}" \
+    "${SCRIPT_DIR}/build-shared-wine-runtime.sh"
+shared_cache="${SHARED_WINE_CACHE_DIR:-${XDG_CACHE_HOME}/shared-wine-flatpak}"
+shared_runtime_build="$(<"${shared_cache}/latest-build")"
+export_app_dir="$(mktemp -d "${BUILD_ROOT}/shared-appdir.XXXXXX")"
+cp -a --reflink=auto "${APP_DIR}/files" "${export_app_dir}/files"
+cp -a "${APP_DIR}/metadata" "${export_app_dir}/metadata"
+"${SCRIPT_DIR}/use-shared-wine-runtime.sh" \
+    "${export_app_dir}" "${shared_runtime_build}/files"
+flatpak build-finish "${export_app_dir}"
+
 flatpak build-export --disable-fsync --update-appstream \
     --subject="WeCom ${PACKAGE_VERSION} with Deepin Wine ${ENGINE_VERSION}" \
-    "${LOCAL_REPO}" "${APP_DIR}" "${APP_BRANCH}"
+    "${LOCAL_REPO}" "${export_app_dir}" "${APP_BRANCH}"
 
 repo_url="file://${LOCAL_REPO}"
 if flatpak remotes --user --columns=name | grep -Fxq "${REMOTE_NAME}"; then
@@ -572,6 +632,13 @@ fi
 flatpak build-bundle --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
     "${LOCAL_REPO}" "${BUNDLE_FILE}" "${APP_ID}" "${APP_BRANCH}"
 sha256sum "${BUNDLE_FILE}" > "${BUNDLE_FILE}.sha256"
+
+source "${PROJECT_DIR}/flatpak/shared-wine.conf"
+shared_repo="${SHARED_WINE_REPO:-${XDG_DATA_HOME}/shared-wine-flatpak/repo}"
+shared_bundle="${ARTIFACT_DIR}/${SHARED_WINE_ID}-${SHARED_WINE_BRANCH}-x86_64.flatpak"
+flatpak build-bundle --runtime "${shared_repo}" "${shared_bundle}" \
+    "${SHARED_WINE_ID}" "${SHARED_WINE_BRANCH}"
+sha256sum "${shared_bundle}" > "${shared_bundle}.sha256"
 
 if [[ "${SKIP_INSTALL}" == "1" ]]; then
     printf '已创建（未安装）：%s//%s\n' "${APP_ID}" "${APP_BRANCH}"
