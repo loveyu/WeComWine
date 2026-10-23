@@ -130,8 +130,7 @@ Actions 入口为 `.github/workflows/package-flatpaks.yml`，全部公开制品�
 托管的 `ubuntu-24.04` Runner 构建。线上工作流不读取或生成微软 RichEdit DLL；
 用户侧安装脚本只读取用户明确提供的本地路径。
 
-用户级集成包的阴影抑制功能依赖 `xprop`、`xwininfo` 和 coreutils `stdbuf`，
-不写入或维护 KWin 窗口规则；安装升级时仅迁移并清理本项目旧版本遗留的
+用户级集成包不写入或维护 KWin 窗口规则；安装升级时仅迁移并清理本项目旧版本遗留的
 `wecom-wine-system-frame` 规则。任务栏图标管理依赖宿主 `python3`、ImageMagick
 `magick` 和 X11 `libX11`，依赖缺失时安全降级；它仅规范化企业微信任务窗口的
 标准 X11 图标和 KDE 桌面文件关联。

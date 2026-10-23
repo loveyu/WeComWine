@@ -16,11 +16,12 @@ for directory in desktop flatpak icons patches scripts tests; do
 done
 
 # The former KWin rule forced system borders and could leave WeCom windows at
-# the topmost level.  Remove the stale installed helper during in-place
-# upgrades; the source tree no longer ships or invokes it.
+# the topmost level. Remove obsolete helpers during in-place upgrades,
+# including the retired shadow suppressor.
 rm -f -- \
     "${INSTALL_ROOT}/scripts/install-kwin-rule.sh" \
-    "${INSTALL_ROOT}/scripts/install-deepin-official-wecom.sh"
+    "${INSTALL_ROOT}/scripts/install-deepin-official-wecom.sh" \
+    "${INSTALL_ROOT}/scripts/suppress-wecom-shadow.sh"
 "${INSTALL_ROOT}/scripts/remove-stale-kwin-rule.sh"
 
 install -m 644 "${SOURCE_ROOT}/README.md" "${INSTALL_ROOT}/README.md"

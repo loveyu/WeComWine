@@ -66,7 +66,6 @@ printf '%s starting %s scale=%s dpi=%s force-portal=%s\n' \
     "${scale_factor}" "${wine_dpi}" "${force_portal}"
 
 runner_pid=''
-shadow_suppressor_pid=''
 window_icon_manager_pid=''
 image_clipboard_bridge_pid=''
 stop_requested=0
@@ -88,14 +87,6 @@ if (( deepin_official_baseline == 0 )) && \
     wecom_runtime_args+=(--disable-gpu)
 fi
 
-stop_shadow_suppressor() {
-    if [[ -n "${shadow_suppressor_pid}" ]]; then
-        kill "${shadow_suppressor_pid}" 2>/dev/null || true
-        wait "${shadow_suppressor_pid}" 2>/dev/null || true
-        shadow_suppressor_pid=''
-    fi
-}
-
 stop_window_icon_manager() {
     if [[ -n "${window_icon_manager_pid}" ]]; then
         kill "${window_icon_manager_pid}" 2>/dev/null || true
@@ -113,7 +104,6 @@ stop_image_clipboard_bridge() {
 }
 
 stop_runtime_helpers() {
-    stop_shadow_suppressor
     stop_window_icon_manager
     stop_image_clipboard_bridge
 }
@@ -139,12 +129,6 @@ stop_runner() {
 
 trap stop_runner TERM INT
 trap stop_runtime_helpers EXIT
-
-if (( deepin_official_baseline == 0 )) && \
-   [[ "${WECOM_DISABLE_WINDOW_SHADOW:-0}" != "0" ]]; then
-    "${SCRIPT_DIR}/suppress-wecom-shadow.sh" 9>&- &
-    shadow_suppressor_pid="$!"
-fi
 
 if (( deepin_official_baseline == 0 )) && \
    [[ "${WECOM_MANAGE_WINDOW_ICON:-1}" != "0" ]]; then
